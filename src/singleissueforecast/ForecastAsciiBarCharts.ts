@@ -9,7 +9,7 @@ interface ForecastBarItem {
 
 
 export function Plot(barItem: ForecastBarItem[]) {
-    const data: BarchartItem[] = new Array();
+    const data: BarchartItem[] = [];
     for(const v of barItem) {
         const ctText = v.ct.toString().padStart(5)
         const pText = (100*v.p).toFixed(1).padStart(5) + "%"

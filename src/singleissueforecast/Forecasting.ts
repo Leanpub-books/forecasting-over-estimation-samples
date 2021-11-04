@@ -17,11 +17,11 @@ export function CalculateForecast(values: number[]): ForecastItem[] {
         return {ct: x.ct, f: x.f, p: x.f / values.length}
     })
 
-    const forecast = new Array();
+    const forecast: ForecastItem[] = [];
     let pSum = 0;
     for (const x of cycleTimesWithProbabilities) {
         pSum = pSum + x.p;
-        const f = {ct: x.ct, n: x.f, p: x.p, pSum: pSum};
+        const f = {ct: x.ct, f: x.f, p: x.p, pSum: pSum};
         forecast.push(f);
     }
     return forecast;
