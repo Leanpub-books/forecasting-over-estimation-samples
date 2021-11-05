@@ -2740,7 +2740,7 @@ const forecast = CalculateForecast(forecastingValues);
 Plot(forecast);
 function parseCommandline() {
     if (Deno.args.length == 0) {
-        console.log("Usage: forecast.ts -n <number of issues> -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]");
+        console.log("Usage with: -n <number of issues> -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]");
         Deno.exit(1);
     }
     const args = parse(Deno.args, {
