@@ -1,7 +1,8 @@
 import * as asserts from "https://deno.land/std/testing/asserts.ts";
 
-import {HistoricalRecord, LoadHistory} from "../HistoryReader.ts"
 import { parse, difference, format } from "https://deno.land/std@0.113.0/datetime/mod.ts";
+import {HistoricalRecord, LoadHistory} from "../HistoryReader.ts"
+
 
 Deno.test('Load history', () => {
     var result = LoadHistory("tests/testHistoryReader.csv");

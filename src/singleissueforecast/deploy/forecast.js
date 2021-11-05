@@ -2396,9 +2396,9 @@ function LoadHistory(sourceFilename, delimiter = ";") {
 }
 function CalculateForecast(values) {
     const lazyValues = Lazy.from(values);
-    const uniqueValues = lazyValues.distinct().orderBy((x)=>x
+    const uniqueValues = lazyValues.distinct().toArray().sort((n1, n2)=>n1 - n2
     );
-    const valuesWithFrequencies = uniqueValues.select((x)=>{
+    const valuesWithFrequencies = Lazy.from(uniqueValues).select((x)=>{
         return {
             ct: x,
             f: lazyValues.count((y)=>y == x
@@ -2412,13 +2412,13 @@ function CalculateForecast(values) {
             p: x.f / values.length
         };
     });
-    const forecast = new Array();
+    const forecast = [];
     let pSum = 0;
     for (const x of cycleTimesWithProbabilities){
         pSum = pSum + x.p;
         const f = {
             ct: x.ct,
-            n: x.f,
+            f: x.f,
             p: x.p,
             pSum: pSum
         };
@@ -2427,7 +2427,7 @@ function CalculateForecast(values) {
     return forecast;
 }
 function Plot(barItem) {
-    const data = new Array();
+    const data = [];
     for (const v of barItem){
         const ctText = v.ct.toString().padStart(5);
         const pText = (100 * v.p).toFixed(1).padStart(5) + "%";

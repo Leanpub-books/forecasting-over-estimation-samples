@@ -9,8 +9,9 @@
     The dates have to be in the given format.
  */
 
-import {CsvRow, LoadCsv} from "./CsvReader.ts"
+import { CsvRow, LoadCsv } from "./CsvReader.ts"
 import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
+
 
 export class HistoricalRecord {
     constructor(public readonly StartedOn: Date, public readonly FinishedOn: Date) { }
