@@ -1,1 +1,1 @@
-deno run --allow-read forecast.js $1
+deno run --allow-read forecast.js $*
