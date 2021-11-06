@@ -13,3 +13,4 @@ export function Simulate<T>(historicalData: T[], numberOfSimulations: number, nu
     }
     return simulations;
 }
+
