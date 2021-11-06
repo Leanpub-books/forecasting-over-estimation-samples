@@ -2731,10 +2731,9 @@ function Simulate(historicalData, numberOfSimulations, numberOfRandomSamples, ag
 }
 const args = parseCommandline();
 const history = LoadHistory(args.f);
-const historicalCycletimes = Lazy.from(history).select((x)=>x.CycleTimeDays
-).toArray();
-const forecastingValues = Simulate(historicalCycletimes, args.s, args.n, (values)=>{
-    return Lazy.from(values).sum();
+const forecastingValues = Simulate(history, args.s, args.n, (values)=>{
+    return Lazy.from(values).select((x)=>x.CycleTimeDays
+    ).sum();
 });
 const forecast = CalculateForecast(forecastingValues);
 Plot(forecast);
