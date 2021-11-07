@@ -14,10 +14,27 @@ import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts
 
 
 export class HistoricalRecord {
-    constructor(public readonly StartedOn: Date, public readonly FinishedOn: Date) { }
+    private _cycleTime: number = 0;
+    private _categories: string = "";
 
-    get CycleTimeDays(): number { return (<number>difference(this.FinishedOn, this.StartedOn).days); }
+    constructor(public readonly StartedOn: Date,
+                public readonly FinishedOn: Date,
+                cycleTime: number = 0,
+                categories: string = "") {
+        this._cycleTime = cycleTime;
+        this._categories = categories;
+    }
+
+    get CycleTimeDays(): number {
+        if (this._cycleTime > 0) return this._cycleTime;
+        return (<number>difference(this.FinishedOn, this.StartedOn).days);
+    }
+
+    get Categories(): string[] {
+        return this._categories.split(",").map((x:string) => x.trim());
+    }
 }
+
 
 export function LoadHistory(sourceFilename: string, delimiter: string = ";"): HistoricalRecord[] {
     const csv = LoadCsv(sourceFilename, delimiter);
@@ -26,9 +43,19 @@ export function LoadHistory(sourceFilename: string, delimiter: string = ";"): Hi
     function CreateHistory(csv: CsvRow[]) {
         const records = Array<HistoricalRecord>();
         for (let i = 1; i < csv.length; i++) {
-            let rec = new HistoricalRecord(parse(csv[i].Cols[0], "yyyy-MM-dd"), parse(csv[i].Cols[1], "yyyy-MM-dd"))
+            let rec = new HistoricalRecord(
+                            parse(csv[i].Cols[0], "yyyy-MM-dd"),
+                            parse(csv[i].Cols[1], "yyyy-MM-dd"),
+                            Number(parseOptional(csv[i], 2, 0)),
+                            parseOptional(csv[i], 3, "") as string)
             records.push(rec);
         }
         return records;
+
+
+        function parseOptional<T>(row:CsvRow, i:number, defaultValue: string | number) {
+            if (row.Cols.length <= i) return defaultValue;
+            return row.Cols[i];
+        }
     }
 }
