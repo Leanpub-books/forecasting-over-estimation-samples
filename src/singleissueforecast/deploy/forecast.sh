@@ -1,1 +1,0 @@
-deno run --allow-read forecast.js $1
