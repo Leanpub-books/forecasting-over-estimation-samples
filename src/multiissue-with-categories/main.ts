@@ -21,7 +21,7 @@ for(const i of args.Issues) {
 }
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-const forecastingValues = Simulate<HistoricalRecord>(history.Records, args.NumberOfSimulations, args.Issues.length,
+const forecastingValues = Simulate<HistoricalRecord>(history.FilterByCategories([]), args.NumberOfSimulations, args.Issues.length,
     values  => { return Lazy.from(values).select(x => x.CycleTimeDays).sum(); });
 const forecast = CalculateForecast(forecastingValues);
 

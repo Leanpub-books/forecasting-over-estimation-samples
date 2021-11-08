@@ -13,7 +13,12 @@ import { CsvRow, LoadCsv } from "./CsvReader.ts"
 import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
 
 export class HistoricalData {
-    constructor(public readonly Records: HistoricalRecord[]) {    }
+    constructor(public readonly Records: HistoricalRecord[]) { }
+
+    FilterByCategories(categories: string[]): HistoricalRecord[] {
+        if (categories.length == 0) return this.Records;
+        throw new Error("Not filtering yet!");
+    }
 }
 
 export class HistoricalRecord {
