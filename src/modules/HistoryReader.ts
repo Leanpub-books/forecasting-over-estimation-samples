@@ -12,6 +12,9 @@
 import { CsvRow, LoadCsv } from "./CsvReader.ts"
 import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
 
+export class HistoricalData {
+    constructor(public readonly Records: HistoricalRecord[]) {    }
+}
 
 export class HistoricalRecord {
     private _cycleTime: number = 0;
@@ -36,7 +39,7 @@ export class HistoricalRecord {
 }
 
 
-export function LoadHistory(sourceFilename: string, delimiter: string = ";"): HistoricalRecord[] {
+export function LoadHistory(sourceFilename: string, delimiter: string = ";"): HistoricalData {
     const csv = LoadCsv(sourceFilename, delimiter);
     return CreateHistory(csv);
 
@@ -50,7 +53,7 @@ export function LoadHistory(sourceFilename: string, delimiter: string = ";"): Hi
                             parseOptional(csv[i], 3, "") as string)
             records.push(rec);
         }
-        return records;
+        return new HistoricalData(records);
 
 
         function parseOptional<T>(row:CsvRow, i:number, defaultValue: string | number) {

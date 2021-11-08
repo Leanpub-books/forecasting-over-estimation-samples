@@ -13,10 +13,15 @@ import {Simulate} from "../modules/MonteCarloSimulation.ts";
 
 
 const args = parseCommandline(Deno.args)
+
 console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`)
+for(const i of args.Issues) {
+    if (i.Categories.length > 0)
+        console.log(`- ${i.Categories.join(",")}`)
+}
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-const forecastingValues = Simulate<HistoricalRecord>(history, args.NumberOfSimulations, args.Issues.length,
+const forecastingValues = Simulate<HistoricalRecord>(history.Records, args.NumberOfSimulations, args.Issues.length,
     values  => { return Lazy.from(values).select(x => x.CycleTimeDays).sum(); });
 const forecast = CalculateForecast(forecastingValues);
 
