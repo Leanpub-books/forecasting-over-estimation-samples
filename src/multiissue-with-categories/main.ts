@@ -8,21 +8,25 @@ import {parseCommandline} from "../modules/CommandlineParser.ts";
 import {HistoricalRecord, LoadHistory} from "../modules/HistoryReader.ts";
 import {CalculateForecast} from "../modules/Forecasting.ts";
 import {Plot} from "../modules/ForecastAsciiBarCharts.ts";
-import {Simulate} from "../modules/MonteCarloSimulation.ts";
+import {Simulate, SimulateForCategory} from "../modules/MonteCarloSimulation.ts";
 
 
 
 const args = parseCommandline(Deno.args)
 
 console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`)
-for(const i of args.Issues) {
-    if (i.Categories.length > 0)
-        console.log(`- ${i.Categories.join(",")}`)
-}
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-const forecastingValues = Simulate<HistoricalRecord>(history.FilterByCategories([]), args.NumberOfSimulations, args.Issues.length,
+
+const issueRecords: HistoricalRecord[][] = []
+for(const issue of args.Issues) {
+    console.log(`- ${issue.Categories.join(",")}`)
+    issueRecords.push(history.FilterByCategories(issue.Categories));
+}
+
+const forecastingValues = Simulate<HistoricalRecord>(issueRecords, args.NumberOfSimulations,
     values  => { return Lazy.from(values).select(x => x.CycleTimeDays).sum(); });
+
 const forecast = CalculateForecast(forecastingValues);
 
 Plot(forecast)

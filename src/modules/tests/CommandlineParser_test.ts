@@ -26,3 +26,29 @@ Deno.test('Commandline with -c', () => {
             [new IssueDescription(["a", "b"]), new IssueDescription(["c","d"]), new IssueDescription(["x", "y"])],
             1000))
 });
+
+Deno.test('Number of issues and -n always equal', () => {
+    let result = parseCommandline(["-f", "myfile.csv", "-n", "1"])
+    asserts.assertEquals(result,
+        new CommandlineParameters("myfile.csv",
+            [new IssueDescription([])],
+            1000))
+
+    result = parseCommandline(["-f", "myfile.csv", "-c", "x"])
+    asserts.assertEquals(result,
+        new CommandlineParameters("myfile.csv",
+            [new IssueDescription(["x"])],
+            1000))
+
+    result = parseCommandline(["-f", "myfile.csv", "-c", "x;y", "-n", "1"])
+    asserts.assertEquals(result,
+        new CommandlineParameters("myfile.csv",
+            [new IssueDescription(["x"]), new IssueDescription(["y"])],
+            1000))
+
+    result = parseCommandline(["-f", "myfile.csv", "-c", "x", "-n", "2"])
+    asserts.assertEquals(result,
+        new CommandlineParameters("myfile.csv",
+            [new IssueDescription(["x"]), new IssueDescription([])],
+            1000))
+});
