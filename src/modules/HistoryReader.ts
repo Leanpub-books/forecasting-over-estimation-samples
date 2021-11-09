@@ -22,24 +22,21 @@ export class HistoricalData {
 }
 
 export class HistoricalRecord {
-    private _cycleTime: number = 0;
-    private _categories: string = "";
+    private readonly _cycleTime: number = 0;
+
+    readonly Categories: string[] = [];
 
     constructor(public readonly StartedOn: Date,
                 public readonly FinishedOn: Date,
                 cycleTime: number = 0,
                 categories: string = "") {
         this._cycleTime = cycleTime;
-        this._categories = categories;
+        this.Categories = categories.split(",").map((x:string) => x.trim()).filter((x:string) => x != "*" && x != "");
     }
 
     get CycleTimeDays(): number {
         if (this._cycleTime > 0) return this._cycleTime;
         return (<number>difference(this.FinishedOn, this.StartedOn).days);
-    }
-
-    get Categories(): string[] {
-        return this._categories.split(",").map((x:string) => x.trim());
     }
 }
 
