@@ -20,12 +20,13 @@ const history = LoadHistory(args.HistoricalDataSourceFilename);
 
 const issueRecords: HistoricalRecord[][] = []
 for(const issue of args.Issues) {
-    console.log(`- ${issue.Categories.join(",")}`)
+    let c = issue.Categories.join(",");
+    console.log(`- ${c == "" ? "*" : c}`)
     issueRecords.push(history.FilterByCategories(issue.Categories));
 }
 
 const forecastingValues = Simulate<HistoricalRecord>(issueRecords, args.NumberOfSimulations,
-    values  => { return Lazy.from(values).select(x => x.CycleTimeDays).sum(); });
+    (records)  => { return Lazy.from(records).select((r) => r.CycleTimeDays).sum(); });
 
 const forecast = CalculateForecast(forecastingValues);
 
