@@ -15,9 +15,25 @@ import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts
 export class HistoricalData {
     constructor(public readonly Records: HistoricalRecord[]) { }
 
-    FilterByCategories(categories: string[]): HistoricalRecord[] {
-        if (categories.length == 0) return this.Records;
-        throw new Error("Not filtering yet!");
+    FilterByCategories(pattern: string[]): HistoricalRecord[] {
+        if (pattern.length == 0) return this.Records;
+
+        const filteredRecords: HistoricalRecord[] = []
+        for(const rec of this.Records) {
+            // if categories are given, but the record is not categorized, then it cannot match the pattern
+            if (rec.Categories.length == 0) continue;
+
+            // for each pattern category check if the record belongs to it
+            let matchesPattern = true;
+            for(const c of pattern) {
+                matchesPattern = rec.Categories.includes(c);
+                if (matchesPattern == false) break;
+            }
+
+            if (matchesPattern)
+                filteredRecords.push(rec);
+        }
+        return filteredRecords;
     }
 }
 

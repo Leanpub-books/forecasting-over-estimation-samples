@@ -49,3 +49,27 @@ Deno.test('Historical records with no categories', () => {
     rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, ", *,a , ");
     asserts.assertEquals(rec.Categories, ["a"]);
 });
+
+
+Deno.test('Filter history', () => {
+    var history = LoadHistory("tests/testHistoryReader3.csv");
+    asserts.assertEquals(history.Records.length, 6)
+
+    let result = history.FilterByCategories([]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result.length, 6)
+
+    result = history.FilterByCategories(["a"]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result, [1,2,5])
+
+    result = history.FilterByCategories(["b"]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result, [2,3,5])
+
+    result = history.FilterByCategories(["b", "a"]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result, [2,5])
+
+    result = history.FilterByCategories(["b", "c"]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result, [3,5])
+
+    result = history.FilterByCategories(["x"]).map(x => x.CycleTimeDays)
+    asserts.assertEquals(result, [])
+});
