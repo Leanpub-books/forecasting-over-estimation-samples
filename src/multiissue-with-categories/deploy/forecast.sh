@@ -1,1 +1,1 @@
-deno run --allow-read forecast.js $*
+deno run --allow-read forecast.js "$@"
