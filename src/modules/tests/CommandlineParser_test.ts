@@ -52,3 +52,11 @@ Deno.test('Number of issues and -n always equal', () => {
             [new IssueDescription(["x"]), new IssueDescription([])],
             1000))
 });
+
+Deno.test('Issues w/o a category', () => {
+    let result = parseCommandline(["-f", "myfile.csv", "-c", ";;"])
+    asserts.assertEquals(result,
+        new CommandlineParameters("myfile.csv",
+            [new IssueDescription([]),new IssueDescription([]),new IssueDescription([])],
+            1000))
+});

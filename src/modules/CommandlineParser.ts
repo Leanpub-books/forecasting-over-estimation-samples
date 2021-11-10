@@ -43,7 +43,7 @@ export function parseCommandline(args: string[]): CommandlineParameters {
             var issueCategories = args.c.split(";")
             for (const ic of issueCategories) {
                 const categories = ic.split(",")
-                const issue = categories.map((x: string) => x.trim());
+                const issue = categories.map((x: string) => x.trim()).filter((x:string) => x != "");
                 issues.push(new IssueDescription(issue));
             }
         }
