@@ -11,6 +11,7 @@
 
 import { CsvRow, LoadCsv } from "./CsvReader.ts"
 import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
+import { Lazy } from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 export class HistoricalData {
     constructor(public readonly Records: HistoricalRecord[]) { }
@@ -34,6 +35,28 @@ export class HistoricalData {
                 filteredRecords.push(rec);
         }
         return filteredRecords;
+    }
+
+    get DateRange(): Date[] {
+        const first = Lazy.from(this.Records).min(x => x.StartedOn.getTime());
+        const last = Lazy.from(this.Records).max(x => x.FinishedOn.getTime());
+        return [new Date(first), new Date(last)];
+    }
+
+    get Calendar(): Date[] {
+        const MSEC_IN_A_DAY = (1000 * 60 * 60 * 24);
+        const calendar: Date[] = []
+
+        const range = this.DateRange;
+        var next = range[0];
+        while(next <= range[1]) {
+            const isWorkingDay = next.getDay() != 0 && next.getDay() != 6
+            if (isWorkingDay) calendar.push(next);
+
+            next = new Date(next.getTime() + MSEC_IN_A_DAY);
+        }
+
+        return calendar;
     }
 }
 

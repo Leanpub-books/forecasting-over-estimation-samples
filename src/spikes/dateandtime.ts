@@ -2,9 +2,10 @@
 
 import { parse, format, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
 
-const s = parse("2021-10-31", "yyyy-MM-dd")
-const f = parse("2021-11-02", "yyyy-MM-dd")
+const d = parse("2021-11-26", "yyyy-MM-dd")
+console.log(d)
 
-const d = (<number>difference(s, f).days)
+var e = new Date(d.getTime() + (24*60*60*1000))
+console.log(e)
 
-console.log(`${d} days`)
+console.log(e.getDay())
