@@ -1,8 +1,10 @@
-type aggregationFunction<T> = { (values: T[]): number };
+type aggregateCollectionFunction<T> = { (values: T[]): number };
+type pickRandomFunction<T> = { (): T  }
+type aggregateRandomPicksFunction<T> = { (pickRandom: pickRandomFunction<T>): number };
 
 
 export function SimulateForCategory<T>(historicalData: T[], numberOfRandomSamples: number, numberOfSimulations: number,
-                                       aggregate: aggregationFunction<T>): number[] {
+                                       aggregate: aggregateCollectionFunction<T>): number[] {
     // The historical data is treated as a subset in order to be able to use Simulate<T>.
     // The single source is multiplied by the number of samples to be taken.
     // This serves the same purpose as specifying filter categories for the same number of samples.
@@ -10,13 +12,13 @@ export function SimulateForCategory<T>(historicalData: T[], numberOfRandomSample
     for(let i=1; i<=numberOfRandomSamples; i += 1)
         subsets.push(historicalData);
 
-    return Simulate(subsets, numberOfSimulations,
+    return SimulateByServing(subsets, numberOfSimulations,
                     aggregate);
 }
 
 
-export function Simulate<T>(historicalDataSubsets: T[][], numberOfSimulations: number,
-                            aggregate: aggregationFunction<T>): number[] {
+export function SimulateByServing<T>(historicalDataSubsets: T[][], numberOfSimulations: number,
+                                     aggregate: aggregateCollectionFunction<T>): number[] {
     const simulations: number[] = [];
     for (let i = 1; i <= numberOfSimulations; i += 1) {
         const samples: T[] = [];
@@ -28,5 +30,21 @@ export function Simulate<T>(historicalDataSubsets: T[][], numberOfSimulations: n
         simulations.push(aggregate(samples));
     }
     return simulations;
+}
+
+
+export function SimulateByPicking<T>(historicalData: T[], numberOfSimulations: number,
+                                     aggregate: aggregateRandomPicksFunction<T>): number[] {
+    const simulations: number[] = [];
+    for (let i = 1; i <= numberOfSimulations; i += 1) {
+        simulations.push(aggregate(pickRandom));
+    }
+    return simulations;
+
+
+    function pickRandom(): T {
+        const index = Math.floor(Math.random() * historicalData.length);
+        return historicalData[index]
+    }
 }
 

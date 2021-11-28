@@ -5,10 +5,10 @@
 import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 import {parseCommandline} from "../modules/CommandlineParser.ts";
-import {HistoricalRecord, LoadHistory} from "../modules/HistoryReader.ts";
+import {LoadHistory} from "../modules/HistoryReader.ts";
 import {CalculateForecast} from "../modules/Forecasting.ts";
 import {Plot} from "../modules/ForecastAsciiBarCharts.ts";
-import {Simulate, SimulateForCategory} from "../modules/MonteCarloSimulation.ts";
+import {SimulateByPicking} from "../modules/MonteCarloSimulation.ts";
 
 
 
@@ -18,15 +18,16 @@ console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.l
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
 
-const issueRecords: HistoricalRecord[][] = []
-for(const issue of args.Issues) {
-    let c = issue.Categories.join(",");
-    console.log(`- ${c == "" ? "*" : c}`)
-    issueRecords.push(history.FilterByCategories(issue.Categories));
-}
-
-const forecastingValues = Simulate<HistoricalRecord>(issueRecords, args.NumberOfSimulations,
-    (records)  => { return Lazy.from(records).select((r) => r.CycleTimeDays).sum(); });
+const forecastingValues = SimulateByPicking<number>(history.Throughputs.map(x => x.Throughput), args.NumberOfSimulations,
+    (pickRandom) => {
+        var totalThroughput = 0;
+        var batchCycleTime = 0;
+        while(totalThroughput < args.Issues.length) {
+            totalThroughput = totalThroughput + pickRandom();
+            batchCycleTime = batchCycleTime + 1;
+        }
+        return batchCycleTime;
+    });
 
 const forecast = CalculateForecast(forecastingValues);
 
