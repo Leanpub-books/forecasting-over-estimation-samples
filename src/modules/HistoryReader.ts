@@ -58,6 +58,31 @@ export class HistoricalData {
 
         return calendar;
     }
+
+    get Throughputs(): HistoricalThroughput[] {
+        const tpCollection = new Map<number,number>()
+        // initialize collection
+        for(const d of this.Calendar)
+            tpCollection.set(d.getTime(), 0);
+        // fill collection
+        for(const r of this.Records) {
+            if (tpCollection.has(r.FinishedOn.getTime()) == false)
+                tpCollection.set(r.FinishedOn.getTime(), 0)
+            tpCollection.set(r.FinishedOn.getTime(), <number>tpCollection.get(r.FinishedOn.getTime())+1)
+        }
+        // map collection to HistoricalThroughput[]
+        const throughputs: HistoricalThroughput[] = []
+        for(const c of tpCollection.keys())
+            throughputs.push(new HistoricalThroughput(new Date(c), <number>tpCollection.get(c)))
+        return throughputs.sort(compareDates);
+
+
+        function compareDates(a:HistoricalThroughput, b:HistoricalThroughput):number {
+            if (a.Date < b.Date) return -1;
+            if (a.Date > b.Date) return 1;
+            return 0;
+        }
+    }
 }
 
 export class HistoricalRecord {
@@ -77,6 +102,10 @@ export class HistoricalRecord {
         if (this._cycleTime > 0) return this._cycleTime;
         return (<number>difference(this.FinishedOn, this.StartedOn).days);
     }
+}
+
+export class HistoricalThroughput {
+    constructor(public readonly Date: Date,  public readonly Throughput: number) {}
 }
 
 

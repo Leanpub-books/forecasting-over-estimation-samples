@@ -36,3 +36,40 @@ Deno.test("Get working day calendar between first beginning and last finishing d
         parse("2021-12-06", "yyyy-MM-dd")
     ]);
 })
+
+Deno.test("Get throughputs", () => {
+    const sut = new HistoricalData(
+        [
+            new HistoricalRecord(parse("2021-11-26", "yyyy-MM-dd"), parse("2021-12-06", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-11-26", "yyyy-MM-dd"), parse("2021-11-26", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-11-26", "yyyy-MM-dd"), parse("2021-11-29", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-11-27", "yyyy-MM-dd"), parse("2021-11-29", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-01", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-02", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-02", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-02", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-03", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-12-01", "yyyy-MM-dd"), parse("2021-12-03", "yyyy-MM-dd")),
+        ]
+    );
+
+    asserts.assertEquals(sut.Throughputs.map(x => x.Date), [
+        parse("2021-11-26", "yyyy-MM-dd"),
+        parse("2021-11-29", "yyyy-MM-dd"),
+        parse("2021-11-30", "yyyy-MM-dd"),
+        parse("2021-12-01", "yyyy-MM-dd"),
+        parse("2021-12-02", "yyyy-MM-dd"),
+        parse("2021-12-03", "yyyy-MM-dd"),
+        parse("2021-12-06", "yyyy-MM-dd")
+    ]);
+
+    asserts.assertEquals(sut.Throughputs.map(x => x.Throughput), [
+        1,
+        2,
+        0,
+        1,
+        3,
+        2,
+        1
+    ]);
+})
