@@ -2721,16 +2721,9 @@ class HistoricalData {
         for (const r of this.Records){
             tpCollection.set(r.FinishedOn.getTime(), tpCollection.get(r.FinishedOn.getTime()) + 1);
         }
-        const throughputs = [];
-        for (const c of tpCollection.keys()){
-            throughputs.push(new HistoricalThroughput(new Date(c), tpCollection.get(c)));
-        }
-        return throughputs.sort(compareDates);
-        function compareDates(a, b) {
-            if (a.Date < b.Date) return -1;
-            if (a.Date > b.Date) return 1;
-            return 0;
-        }
+        return Lazy.from(tpCollection.entries()).select((e)=>new HistoricalThroughput(new Date(e[0]), e[1])
+        ).orderBy((tp)=>tp.Date.getTime()
+        ).toArray();
     }
 }
 class HistoricalRecord {

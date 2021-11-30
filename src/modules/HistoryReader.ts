@@ -60,18 +60,18 @@ export class HistoricalData {
 
     get Throughputs(): HistoricalThroughput[] {
         const tpCollection = new Map<number,number>()
-        // initialize collection
+        // initialize throughput collection
         for(const d of this.Calendar) {
             tpCollection.set(d.getTime(), 0);
         }
-        // fill collection
+        // fill collection: increment throughput per day
         for(const r of this.Records) {
             tpCollection.set(r.FinishedOn.getTime(), <number>tpCollection.get(r.FinishedOn.getTime()) + 1)
         }
 
         // map to HistoricalThroughput[]
-        return Lazy.from(tpCollection.keys())
-                   .select(k => new HistoricalThroughput(new Date(k), <number>tpCollection.get(k)))
+        return Lazy.from(tpCollection.entries())
+                   .select(e => new HistoricalThroughput(new Date(e[0]), e[1]))
                    .orderBy(tp => tp.Date.getTime())
                    .toArray();
     }
