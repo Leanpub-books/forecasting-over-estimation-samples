@@ -69,19 +69,11 @@ export class HistoricalData {
             tpCollection.set(r.FinishedOn.getTime(), <number>tpCollection.get(r.FinishedOn.getTime()) + 1)
         }
 
-        // map collection to HistoricalThroughput[]
-        const throughputs: HistoricalThroughput[] = []
-        for(const c of tpCollection.keys()) {
-            throughputs.push(new HistoricalThroughput(new Date(c), <number>tpCollection.get(c)))
-        }
-        return throughputs.sort(compareDates);
-
-
-        function compareDates(a:HistoricalThroughput, b:HistoricalThroughput):number {
-            if (a.Date < b.Date) return -1;
-            if (a.Date > b.Date) return 1;
-            return 0;
-        }
+        // map to HistoricalThroughput[]
+        return Lazy.from(tpCollection.keys())
+                   .select(k => new HistoricalThroughput(new Date(k), <number>tpCollection.get(k)))
+                   .orderBy(tp => tp.Date.getTime())
+                   .toArray();
     }
 }
 
