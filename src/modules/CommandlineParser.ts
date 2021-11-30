@@ -9,6 +9,7 @@ export class IssueDescription {
 
 export class CommandlineParameters {
     constructor(public readonly HistoricalDataSourceFilename: string,
+                public readonly Mode: string,
                 public readonly Issues: IssueDescription[],
                 public readonly NumberOfSimulations: number) {
     }
@@ -18,12 +19,12 @@ export class CommandlineParameters {
 export function parseCommandline(args: string[]): CommandlineParameters {
     if (args.length == 0) printUsageAndExit();
 
-    const parsedArgs = parse(args, {default: {n: 0, s: 1000}})
+    const parsedArgs = parse(args, {default: {n: 0, s: 1000, m: "tp"}})
     if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!")
 
     const issues = parseIssueCategories(parsedArgs);
 
-    return new CommandlineParameters(parsedArgs.f, issues, parsedArgs.s);
+    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, issues, parsedArgs.s);
 
 
     function printUsageAndExit(errorMsg:string = "") {

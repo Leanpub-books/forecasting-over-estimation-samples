@@ -254,10 +254,12 @@ class IssueDescription {
 }
 class CommandlineParameters {
     HistoricalDataSourceFilename;
+    Mode;
     Issues;
     NumberOfSimulations;
-    constructor(HistoricalDataSourceFilename, Issues, NumberOfSimulations){
+    constructor(HistoricalDataSourceFilename, Mode, Issues, NumberOfSimulations){
         this.HistoricalDataSourceFilename = HistoricalDataSourceFilename;
+        this.Mode = Mode;
         this.Issues = Issues;
         this.NumberOfSimulations = NumberOfSimulations;
     }
@@ -267,12 +269,13 @@ function parseCommandline(args) {
     const parsedArgs = parse(args, {
         default: {
             n: 0,
-            s: 1000
+            s: 1000,
+            m: "tp"
         }
     });
     if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!");
     const issues = parseIssueCategories(parsedArgs);
-    return new CommandlineParameters(parsedArgs.f, issues, parsedArgs.s);
+    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, issues, parsedArgs.s);
     function printUsageAndExit(errorMsg = "") {
         if (errorMsg != "") {
             console.log(`*** ${errorMsg}`);
@@ -2843,6 +2846,23 @@ function DrawBar(value, maxValue, maxBarLength) {
     if (fractionalPart > 0) bar += fractions[Math.floor(fractionalPart * fractions.length)];
     return bar;
 }
+function SimulateByServing(historicalData, numberOfRandomSamples, numberOfSimulations, aggregate) {
+    const subsets = [];
+    for(let i = 1; i <= numberOfRandomSamples; i += 1)subsets.push(historicalData);
+    return SimulateByServingFromMultipleSubsets(subsets, numberOfSimulations, aggregate);
+}
+function SimulateByServingFromMultipleSubsets(historicalDataSubsets, numberOfSimulations, aggregate) {
+    const simulations = [];
+    for(let i = 1; i <= numberOfSimulations; i += 1){
+        const samples = [];
+        for(let s = 0; s < historicalDataSubsets.length; s += 1){
+            const index = Math.floor(Math.random() * historicalDataSubsets[s].length);
+            samples.push(historicalDataSubsets[s][index]);
+        }
+        simulations.push(aggregate(samples));
+    }
+    return simulations;
+}
 function SimulateByPicking(historicalData, numberOfSimulations, aggregate) {
     const simulations = [];
     for(let i = 1; i <= numberOfSimulations; i += 1){
@@ -2855,19 +2875,33 @@ function SimulateByPicking(historicalData, numberOfSimulations, aggregate) {
     }
 }
 const args = parseCommandline(Deno.args);
-console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`);
+console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`);
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-const throughputs = history.Throughputs.map((x)=>x.Throughput
-);
-const forecastingValues = SimulateByPicking(throughputs, args.NumberOfSimulations, (pickRandom)=>{
-    var totalThroughput = 0;
-    var batchCycleTime = 0;
-    while(totalThroughput < args.Issues.length){
-        totalThroughput += pickRandom();
-        batchCycleTime += 1;
-    }
-    return batchCycleTime;
-});
+var forecastingValues;
+switch(args.Mode){
+    case "tp":
+        const throughputs = history.Throughputs.map((x)=>x.Throughput
+        );
+        forecastingValues = SimulateByPicking(throughputs, args.NumberOfSimulations, (pickRandom)=>{
+            var totalThroughput = 0;
+            var batchCycleTime = 0;
+            while(totalThroughput < args.Issues.length){
+                totalThroughput += pickRandom();
+                batchCycleTime += 1;
+            }
+            return batchCycleTime;
+        });
+        break;
+    case "ct":
+        const cycletimes = history.Records.map((x)=>x.CycleTimeDays
+        );
+        forecastingValues = SimulateByServing(cycletimes, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
+            , 0)
+        );
+        break;
+    default:
+        throw new Error(`*** Unsupported mode ${args.Mode}!`);
+}
 const forecast = CalculateForecast(forecastingValues);
 Plot(forecast);
 
