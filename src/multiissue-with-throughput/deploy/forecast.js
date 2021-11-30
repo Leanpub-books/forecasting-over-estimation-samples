@@ -1,3 +1,1026 @@
+class DenoStdInternalError extends Error {
+    constructor(message){
+        super(message);
+        this.name = "DenoStdInternalError";
+    }
+}
+function assert(expr, msg = "") {
+    if (!expr) {
+        throw new DenoStdInternalError(msg);
+    }
+}
+const { hasOwn  } = Object;
+function get(obj, key) {
+    if (hasOwn(obj, key)) {
+        return obj[key];
+    }
+}
+function getForce(obj, key) {
+    const v = get(obj, key);
+    assert(v != null);
+    return v;
+}
+function isNumber(x) {
+    if (typeof x === "number") return true;
+    if (/^0x[0-9a-f]+$/i.test(String(x))) return true;
+    return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(String(x));
+}
+function hasKey(obj, keys) {
+    let o = obj;
+    keys.slice(0, -1).forEach((key)=>{
+        o = get(o, key) ?? {
+        };
+    });
+    const key = keys[keys.length - 1];
+    return key in o;
+}
+function parse(args, { "--": doubleDash = false , alias ={
+} , boolean: __boolean = false , default: defaults = {
+} , stopEarly =false , string =[] , unknown =(i)=>i
+  } = {
+}) {
+    const flags = {
+        bools: {
+        },
+        strings: {
+        },
+        unknownFn: unknown,
+        allBools: false
+    };
+    if (__boolean !== undefined) {
+        if (typeof __boolean === "boolean") {
+            flags.allBools = !!__boolean;
+        } else {
+            const booleanArgs = typeof __boolean === "string" ? [
+                __boolean
+            ] : __boolean;
+            for (const key of booleanArgs.filter(Boolean)){
+                flags.bools[key] = true;
+            }
+        }
+    }
+    const aliases = {
+    };
+    if (alias !== undefined) {
+        for(const key in alias){
+            const val = getForce(alias, key);
+            if (typeof val === "string") {
+                aliases[key] = [
+                    val
+                ];
+            } else {
+                aliases[key] = val;
+            }
+            for (const alias1 of getForce(aliases, key)){
+                aliases[alias1] = [
+                    key
+                ].concat(aliases[key].filter((y)=>alias1 !== y
+                ));
+            }
+        }
+    }
+    if (string !== undefined) {
+        const stringArgs = typeof string === "string" ? [
+            string
+        ] : string;
+        for (const key of stringArgs.filter(Boolean)){
+            flags.strings[key] = true;
+            const alias = get(aliases, key);
+            if (alias) {
+                for (const al of alias){
+                    flags.strings[al] = true;
+                }
+            }
+        }
+    }
+    const argv = {
+        _: []
+    };
+    function argDefined(key, arg) {
+        return flags.allBools && /^--[^=]+$/.test(arg) || get(flags.bools, key) || !!get(flags.strings, key) || !!get(aliases, key);
+    }
+    function setKey(obj, keys, value) {
+        let o = obj;
+        keys.slice(0, -1).forEach(function(key) {
+            if (get(o, key) === undefined) {
+                o[key] = {
+                };
+            }
+            o = get(o, key);
+        });
+        const key = keys[keys.length - 1];
+        if (get(o, key) === undefined || get(flags.bools, key) || typeof get(o, key) === "boolean") {
+            o[key] = value;
+        } else if (Array.isArray(get(o, key))) {
+            o[key].push(value);
+        } else {
+            o[key] = [
+                get(o, key),
+                value
+            ];
+        }
+    }
+    function setArg(key, val, arg = undefined) {
+        if (arg && flags.unknownFn && !argDefined(key, arg)) {
+            if (flags.unknownFn(arg, key, val) === false) return;
+        }
+        const value = !get(flags.strings, key) && isNumber(val) ? Number(val) : val;
+        setKey(argv, key.split("."), value);
+        const alias = get(aliases, key);
+        if (alias) {
+            for (const x of alias){
+                setKey(argv, x.split("."), value);
+            }
+        }
+    }
+    function aliasIsBoolean(key) {
+        return getForce(aliases, key).some((x)=>typeof get(flags.bools, x) === "boolean"
+        );
+    }
+    for (const key of Object.keys(flags.bools)){
+        setArg(key, defaults[key] === undefined ? false : defaults[key]);
+    }
+    let notFlags = [];
+    if (args.includes("--")) {
+        notFlags = args.slice(args.indexOf("--") + 1);
+        args = args.slice(0, args.indexOf("--"));
+    }
+    for(let i = 0; i < args.length; i++){
+        const arg = args[i];
+        if (/^--.+=/.test(arg)) {
+            const m = arg.match(/^--([^=]+)=(.*)$/s);
+            assert(m != null);
+            const [, key, value] = m;
+            if (flags.bools[key]) {
+                const booleanValue = value !== "false";
+                setArg(key, booleanValue, arg);
+            } else {
+                setArg(key, value, arg);
+            }
+        } else if (/^--no-.+/.test(arg)) {
+            const m = arg.match(/^--no-(.+)/);
+            assert(m != null);
+            setArg(m[1], false, arg);
+        } else if (/^--.+/.test(arg)) {
+            const m = arg.match(/^--(.+)/);
+            assert(m != null);
+            const [, key] = m;
+            const next = args[i + 1];
+            if (next !== undefined && !/^-/.test(next) && !get(flags.bools, key) && !flags.allBools && (get(aliases, key) ? !aliasIsBoolean(key) : true)) {
+                setArg(key, next, arg);
+                i++;
+            } else if (/^(true|false)$/.test(next)) {
+                setArg(key, next === "true", arg);
+                i++;
+            } else {
+                setArg(key, get(flags.strings, key) ? "" : true, arg);
+            }
+        } else if (/^-[^-]+/.test(arg)) {
+            const letters = arg.slice(1, -1).split("");
+            let broken = false;
+            for(let j = 0; j < letters.length; j++){
+                const next = arg.slice(j + 2);
+                if (next === "-") {
+                    setArg(letters[j], next, arg);
+                    continue;
+                }
+                if (/[A-Za-z]/.test(letters[j]) && /=/.test(next)) {
+                    setArg(letters[j], next.split(/=(.+)/)[1], arg);
+                    broken = true;
+                    break;
+                }
+                if (/[A-Za-z]/.test(letters[j]) && /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)) {
+                    setArg(letters[j], next, arg);
+                    broken = true;
+                    break;
+                }
+                if (letters[j + 1] && letters[j + 1].match(/\W/)) {
+                    setArg(letters[j], arg.slice(j + 2), arg);
+                    broken = true;
+                    break;
+                } else {
+                    setArg(letters[j], get(flags.strings, letters[j]) ? "" : true, arg);
+                }
+            }
+            const [key] = arg.slice(-1);
+            if (!broken && key !== "-") {
+                if (args[i + 1] && !/^(-|--)[^-]/.test(args[i + 1]) && !get(flags.bools, key) && (get(aliases, key) ? !aliasIsBoolean(key) : true)) {
+                    setArg(key, args[i + 1], arg);
+                    i++;
+                } else if (args[i + 1] && /^(true|false)$/.test(args[i + 1])) {
+                    setArg(key, args[i + 1] === "true", arg);
+                    i++;
+                } else {
+                    setArg(key, get(flags.strings, key) ? "" : true, arg);
+                }
+            }
+        } else {
+            if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
+                argv._.push(flags.strings["_"] ?? !isNumber(arg) ? arg : Number(arg));
+            }
+            if (stopEarly) {
+                argv._.push(...args.slice(i + 1));
+                break;
+            }
+        }
+    }
+    for (const key1 of Object.keys(defaults)){
+        if (!hasKey(argv, key1.split("."))) {
+            setKey(argv, key1.split("."), defaults[key1]);
+            if (aliases[key1]) {
+                for (const x of aliases[key1]){
+                    setKey(argv, x.split("."), defaults[key1]);
+                }
+            }
+        }
+    }
+    if (doubleDash) {
+        argv["--"] = [];
+        for (const key of notFlags){
+            argv["--"].push(key);
+        }
+    } else {
+        for (const key of notFlags){
+            argv._.push(key);
+        }
+    }
+    return argv;
+}
+class IssueDescription {
+    Categories;
+    constructor(Categories){
+        this.Categories = Categories;
+    }
+}
+class CommandlineParameters {
+    HistoricalDataSourceFilename;
+    Issues;
+    NumberOfSimulations;
+    constructor(HistoricalDataSourceFilename, Issues, NumberOfSimulations){
+        this.HistoricalDataSourceFilename = HistoricalDataSourceFilename;
+        this.Issues = Issues;
+        this.NumberOfSimulations = NumberOfSimulations;
+    }
+}
+function parseCommandline(args) {
+    if (args.length == 0) printUsageAndExit();
+    const parsedArgs = parse(args, {
+        default: {
+            n: 0,
+            s: 1000
+        }
+    });
+    if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!");
+    const issues = parseIssueCategories(parsedArgs);
+    return new CommandlineParameters(parsedArgs.f, issues, parsedArgs.s);
+    function printUsageAndExit(errorMsg = "") {
+        if (errorMsg != "") {
+            console.log(`*** ${errorMsg}`);
+            console.log();
+        }
+        console.log("Use with: [-n <number of issues> | -c \"<category>,<categorgy> {; ...}\" -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]");
+        Deno.exit(1);
+    }
+    function parseIssueCategories(args) {
+        const issues = [];
+        if (args.c !== undefined) {
+            var issueCategories = args.c.split(";");
+            for (const ic of issueCategories){
+                const categories = ic.split(",");
+                const issue = categories.map((x)=>x.trim()
+                ).filter((x)=>x != ""
+                );
+                issues.push(new IssueDescription(issue));
+            }
+        }
+        if (issues.length == 0 && parsedArgs.n == 0) printUsageAndExit("Either -n or -c needs to be specified!");
+        if (parsedArgs.n < issues.length) parsedArgs.n = issues.length;
+        for(let i = issues.length + 1; i <= parsedArgs.n; i += 1)issues.push(new IssueDescription([]));
+        console.assert(issues.length == parsedArgs.n);
+        return issues;
+    }
+}
+function LoadCsv(sourceFilename, delimiter = ";") {
+    const text = Deno.readTextFileSync(sourceFilename);
+    const rows = text.split("\n");
+    const result = new Array();
+    for (const row of rows){
+        const cols = row.trim().split(delimiter);
+        result.push({
+            Cols: cols
+        });
+    }
+    return result;
+}
+class Tokenizer {
+    rules;
+    constructor(rules = []){
+        this.rules = rules;
+    }
+    addRule(test, fn) {
+        this.rules.push({
+            test,
+            fn
+        });
+        return this;
+    }
+    tokenize(string, receiver = (token)=>token
+    ) {
+        function* generator(rules) {
+            let index = 0;
+            for (const rule of rules){
+                const result = rule.test(string);
+                if (result) {
+                    const { value , length  } = result;
+                    index += length;
+                    string = string.slice(length);
+                    const token = {
+                        ...rule.fn(value),
+                        index
+                    };
+                    yield receiver(token);
+                    yield* generator(rules);
+                }
+            }
+        }
+        const tokenGenerator = generator(this.rules);
+        const tokens = [];
+        for (const token of tokenGenerator){
+            tokens.push(token);
+        }
+        if (string.length) {
+            throw new Error(`parser error: string not fully parsed! ${string.slice(0, 25)}`);
+        }
+        return tokens;
+    }
+}
+function digits(value, count = 2) {
+    return String(value).padStart(count, "0");
+}
+function createLiteralTestFunction(value) {
+    return (string)=>{
+        return string.startsWith(value) ? {
+            value,
+            length: value.length
+        } : undefined;
+    };
+}
+function createMatchTestFunction(match) {
+    return (string)=>{
+        const result = match.exec(string);
+        if (result) return {
+            value: result,
+            length: result[0].length
+        };
+    };
+}
+const defaultRules = [
+    {
+        test: createLiteralTestFunction("yyyy"),
+        fn: ()=>({
+                type: "year",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("yy"),
+        fn: ()=>({
+                type: "year",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("MM"),
+        fn: ()=>({
+                type: "month",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("M"),
+        fn: ()=>({
+                type: "month",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("dd"),
+        fn: ()=>({
+                type: "day",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("d"),
+        fn: ()=>({
+                type: "day",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("HH"),
+        fn: ()=>({
+                type: "hour",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("H"),
+        fn: ()=>({
+                type: "hour",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("hh"),
+        fn: ()=>({
+                type: "hour",
+                value: "2-digit",
+                hour12: true
+            })
+    },
+    {
+        test: createLiteralTestFunction("h"),
+        fn: ()=>({
+                type: "hour",
+                value: "numeric",
+                hour12: true
+            })
+    },
+    {
+        test: createLiteralTestFunction("mm"),
+        fn: ()=>({
+                type: "minute",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("m"),
+        fn: ()=>({
+                type: "minute",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("ss"),
+        fn: ()=>({
+                type: "second",
+                value: "2-digit"
+            })
+    },
+    {
+        test: createLiteralTestFunction("s"),
+        fn: ()=>({
+                type: "second",
+                value: "numeric"
+            })
+    },
+    {
+        test: createLiteralTestFunction("SSS"),
+        fn: ()=>({
+                type: "fractionalSecond",
+                value: 3
+            })
+    },
+    {
+        test: createLiteralTestFunction("SS"),
+        fn: ()=>({
+                type: "fractionalSecond",
+                value: 2
+            })
+    },
+    {
+        test: createLiteralTestFunction("S"),
+        fn: ()=>({
+                type: "fractionalSecond",
+                value: 1
+            })
+    },
+    {
+        test: createLiteralTestFunction("a"),
+        fn: (value)=>({
+                type: "dayPeriod",
+                value: value
+            })
+    },
+    {
+        test: createMatchTestFunction(/^(')(?<value>\\.|[^\']*)\1/),
+        fn: (match)=>({
+                type: "literal",
+                value: match.groups.value
+            })
+    },
+    {
+        test: createMatchTestFunction(/^.+?\s*/),
+        fn: (match)=>({
+                type: "literal",
+                value: match[0]
+            })
+    }, 
+];
+class DateTimeFormatter {
+    #format;
+    constructor(formatString, rules = defaultRules){
+        const tokenizer = new Tokenizer(rules);
+        this.#format = tokenizer.tokenize(formatString, ({ type , value , hour12  })=>{
+            const result = {
+                type,
+                value
+            };
+            if (hour12) result.hour12 = hour12;
+            return result;
+        });
+    }
+    format(date, options = {
+    }) {
+        let string = "";
+        const utc = options.timeZone === "UTC";
+        for (const token of this.#format){
+            const type = token.type;
+            switch(type){
+                case "year":
+                    {
+                        const value = utc ? date.getUTCFullYear() : date.getFullYear();
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2).slice(-2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "month":
+                    {
+                        const value = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "day":
+                    {
+                        const value = utc ? date.getUTCDate() : date.getDate();
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "hour":
+                    {
+                        let value = utc ? date.getUTCHours() : date.getHours();
+                        value -= token.hour12 && date.getHours() > 12 ? 12 : 0;
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "minute":
+                    {
+                        const value = utc ? date.getUTCMinutes() : date.getMinutes();
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "second":
+                    {
+                        const value = utc ? date.getUTCSeconds() : date.getSeconds();
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    string += value;
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    string += digits(value, 2);
+                                    break;
+                                }
+                            default:
+                                throw Error(`FormatterError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "fractionalSecond":
+                    {
+                        const value = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
+                        string += digits(value, Number(token.value));
+                        break;
+                    }
+                case "timeZoneName":
+                    {
+                        break;
+                    }
+                case "dayPeriod":
+                    {
+                        string += token.value ? date.getHours() >= 12 ? "PM" : "AM" : "";
+                        break;
+                    }
+                case "literal":
+                    {
+                        string += token.value;
+                        break;
+                    }
+                default:
+                    throw Error(`FormatterError: { ${token.type} ${token.value} }`);
+            }
+        }
+        return string;
+    }
+    parseToParts(string) {
+        const parts = [];
+        for (const token of this.#format){
+            const type = token.type;
+            let value = "";
+            switch(token.type){
+                case "year":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,4}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case "month":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "narrow":
+                                {
+                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "short":
+                                {
+                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "long":
+                                {
+                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
+                                    break;
+                                }
+                            default:
+                                throw Error(`ParserError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "day":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            default:
+                                throw Error(`ParserError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "hour":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    if (token.hour12 && parseInt(value) > 12) {
+                                        console.error(`Trying to parse hour greater than 12. Use 'H' instead of 'h'.`);
+                                    }
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{2}/.exec(string)?.[0];
+                                    if (token.hour12 && parseInt(value) > 12) {
+                                        console.error(`Trying to parse hour greater than 12. Use 'HH' instead of 'hh'.`);
+                                    }
+                                    break;
+                                }
+                            default:
+                                throw Error(`ParserError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "minute":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            default:
+                                throw Error(`ParserError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "second":
+                    {
+                        switch(token.value){
+                            case "numeric":
+                                {
+                                    value = /^\d{1,2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            case "2-digit":
+                                {
+                                    value = /^\d{2}/.exec(string)?.[0];
+                                    break;
+                                }
+                            default:
+                                throw Error(`ParserError: value "${token.value}" is not supported`);
+                        }
+                        break;
+                    }
+                case "fractionalSecond":
+                    {
+                        value = new RegExp(`^\\d{${token.value}}`).exec(string)?.[0];
+                        break;
+                    }
+                case "timeZoneName":
+                    {
+                        value = token.value;
+                        break;
+                    }
+                case "dayPeriod":
+                    {
+                        value = /^(A|P)M/.exec(string)?.[0];
+                        break;
+                    }
+                case "literal":
+                    {
+                        if (!string.startsWith(token.value)) {
+                            throw Error(`Literal "${token.value}" not found "${string.slice(0, 25)}"`);
+                        }
+                        value = token.value;
+                        break;
+                    }
+                default:
+                    throw Error(`${token.type} ${token.value}`);
+            }
+            if (!value) {
+                throw Error(`value not valid for token { ${type} ${value} } ${string.slice(0, 25)}`);
+            }
+            parts.push({
+                type,
+                value
+            });
+            string = string.slice(value.length);
+        }
+        if (string.length) {
+            throw Error(`datetime string was not fully parsed! ${string.slice(0, 25)}`);
+        }
+        return parts;
+    }
+    sortDateTimeFormatPart(parts) {
+        let result = [];
+        const typeArray = [
+            "year",
+            "month",
+            "day",
+            "hour",
+            "minute",
+            "second",
+            "fractionalSecond", 
+        ];
+        for (const type of typeArray){
+            const current = parts.findIndex((el)=>el.type === type
+            );
+            if (current !== -1) {
+                result = result.concat(parts.splice(current, 1));
+            }
+        }
+        result = result.concat(parts);
+        return result;
+    }
+    partsToDate(parts) {
+        const date = new Date();
+        const utc = parts.find((part)=>part.type === "timeZoneName" && part.value === "UTC"
+        );
+        utc ? date.setUTCHours(0, 0, 0, 0) : date.setHours(0, 0, 0, 0);
+        for (const part of parts){
+            switch(part.type){
+                case "year":
+                    {
+                        const value = Number(part.value.padStart(4, "20"));
+                        utc ? date.setUTCFullYear(value) : date.setFullYear(value);
+                        break;
+                    }
+                case "month":
+                    {
+                        const value = Number(part.value) - 1;
+                        utc ? date.setUTCMonth(value) : date.setMonth(value);
+                        break;
+                    }
+                case "day":
+                    {
+                        const value = Number(part.value);
+                        utc ? date.setUTCDate(value) : date.setDate(value);
+                        break;
+                    }
+                case "hour":
+                    {
+                        let value = Number(part.value);
+                        const dayPeriod = parts.find((part)=>part.type === "dayPeriod"
+                        );
+                        if (dayPeriod?.value === "PM") value += 12;
+                        utc ? date.setUTCHours(value) : date.setHours(value);
+                        break;
+                    }
+                case "minute":
+                    {
+                        const value = Number(part.value);
+                        utc ? date.setUTCMinutes(value) : date.setMinutes(value);
+                        break;
+                    }
+                case "second":
+                    {
+                        const value = Number(part.value);
+                        utc ? date.setUTCSeconds(value) : date.setSeconds(value);
+                        break;
+                    }
+                case "fractionalSecond":
+                    {
+                        const value = Number(part.value);
+                        utc ? date.setUTCMilliseconds(value) : date.setMilliseconds(value);
+                        break;
+                    }
+            }
+        }
+        return date;
+    }
+    parse(string) {
+        const parts = this.parseToParts(string);
+        const sortParts = this.sortDateTimeFormatPart(parts);
+        return this.partsToDate(sortParts);
+    }
+}
+const SECOND = 1000;
+const MINUTE = 1000 * 60;
+const HOUR = MINUTE * 60;
+const DAY = HOUR * 24;
+const WEEK = DAY * 7;
+var Day;
+(function(Day) {
+    Day[Day["Sun"] = 0] = "Sun";
+    Day[Day["Mon"] = 1] = "Mon";
+    Day[Day["Tue"] = 2] = "Tue";
+    Day[Day["Wed"] = 3] = "Wed";
+    Day[Day["Thu"] = 4] = "Thu";
+    Day[Day["Fri"] = 5] = "Fri";
+    Day[Day["Sat"] = 6] = "Sat";
+})(Day || (Day = {
+}));
+function parse1(dateString, formatString) {
+    const formatter = new DateTimeFormatter(formatString);
+    const parts = formatter.parseToParts(dateString);
+    const sortParts = formatter.sortDateTimeFormatPart(parts);
+    return formatter.partsToDate(sortParts);
+}
+function difference(from, to, options) {
+    const uniqueUnits = options?.units ? [
+        ...new Set(options?.units)
+    ] : [
+        "milliseconds",
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "weeks",
+        "months",
+        "quarters",
+        "years", 
+    ];
+    const bigger = Math.max(from.getTime(), to.getTime());
+    const smaller = Math.min(from.getTime(), to.getTime());
+    const differenceInMs = bigger - smaller;
+    const differences = {
+    };
+    for (const uniqueUnit of uniqueUnits){
+        switch(uniqueUnit){
+            case "milliseconds":
+                differences.milliseconds = differenceInMs;
+                break;
+            case "seconds":
+                differences.seconds = Math.floor(differenceInMs / SECOND);
+                break;
+            case "minutes":
+                differences.minutes = Math.floor(differenceInMs / MINUTE);
+                break;
+            case "hours":
+                differences.hours = Math.floor(differenceInMs / HOUR);
+                break;
+            case "days":
+                differences.days = Math.floor(differenceInMs / DAY);
+                break;
+            case "weeks":
+                differences.weeks = Math.floor(differenceInMs / WEEK);
+                break;
+            case "months":
+                differences.months = calculateMonthsDifference(bigger, smaller);
+                break;
+            case "quarters":
+                differences.quarters = Math.floor(typeof differences.months !== "undefined" && differences.months / 4 || calculateMonthsDifference(bigger, smaller) / 4);
+                break;
+            case "years":
+                differences.years = Math.floor(typeof differences.months !== "undefined" && differences.months / 12 || calculateMonthsDifference(bigger, smaller) / 12);
+                break;
+        }
+    }
+    return differences;
+}
+function calculateMonthsDifference(bigger, smaller) {
+    const biggerDate = new Date(bigger);
+    const smallerDate = new Date(smaller);
+    const yearsDiff = biggerDate.getFullYear() - smallerDate.getFullYear();
+    const monthsDiff = biggerDate.getMonth() - smallerDate.getMonth();
+    const calendarDifferences = Math.abs(yearsDiff * 12 + monthsDiff);
+    const compareResult = biggerDate > smallerDate ? 1 : -1;
+    biggerDate.setMonth(biggerDate.getMonth() - compareResult * calendarDifferences);
+    const isLastMonthNotFull = biggerDate > smallerDate ? 1 : -1 === -compareResult ? 1 : 0;
+    const months = compareResult * (calendarDifferences - isLastMonthNotFull);
+    return months === 0 ? 0 : months;
+}
 var Errors;
 (function(Errors) {
     Errors["Empty"] = 'Empty iterable';
@@ -1650,1029 +2673,6 @@ Lazy.empty;
 Lazy.from;
 Lazy.range;
 Lazy.repeat;
-class DenoStdInternalError extends Error {
-    constructor(message){
-        super(message);
-        this.name = "DenoStdInternalError";
-    }
-}
-function assert(expr, msg = "") {
-    if (!expr) {
-        throw new DenoStdInternalError(msg);
-    }
-}
-const { hasOwn  } = Object;
-function get(obj, key) {
-    if (hasOwn(obj, key)) {
-        return obj[key];
-    }
-}
-function getForce(obj, key) {
-    const v = get(obj, key);
-    assert(v != null);
-    return v;
-}
-function isNumber(x) {
-    if (typeof x === "number") return true;
-    if (/^0x[0-9a-f]+$/i.test(String(x))) return true;
-    return /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(String(x));
-}
-function hasKey(obj, keys) {
-    let o = obj;
-    keys.slice(0, -1).forEach((key)=>{
-        o = get(o, key) ?? {
-        };
-    });
-    const key = keys[keys.length - 1];
-    return key in o;
-}
-function parse(args, { "--": doubleDash = false , alias ={
-} , boolean: __boolean = false , default: defaults = {
-} , stopEarly =false , string =[] , unknown =(i)=>i
-  } = {
-}) {
-    const flags = {
-        bools: {
-        },
-        strings: {
-        },
-        unknownFn: unknown,
-        allBools: false
-    };
-    if (__boolean !== undefined) {
-        if (typeof __boolean === "boolean") {
-            flags.allBools = !!__boolean;
-        } else {
-            const booleanArgs = typeof __boolean === "string" ? [
-                __boolean
-            ] : __boolean;
-            for (const key of booleanArgs.filter(Boolean)){
-                flags.bools[key] = true;
-            }
-        }
-    }
-    const aliases = {
-    };
-    if (alias !== undefined) {
-        for(const key in alias){
-            const val = getForce(alias, key);
-            if (typeof val === "string") {
-                aliases[key] = [
-                    val
-                ];
-            } else {
-                aliases[key] = val;
-            }
-            for (const alias1 of getForce(aliases, key)){
-                aliases[alias1] = [
-                    key
-                ].concat(aliases[key].filter((y)=>alias1 !== y
-                ));
-            }
-        }
-    }
-    if (string !== undefined) {
-        const stringArgs = typeof string === "string" ? [
-            string
-        ] : string;
-        for (const key of stringArgs.filter(Boolean)){
-            flags.strings[key] = true;
-            const alias = get(aliases, key);
-            if (alias) {
-                for (const al of alias){
-                    flags.strings[al] = true;
-                }
-            }
-        }
-    }
-    const argv = {
-        _: []
-    };
-    function argDefined(key, arg) {
-        return flags.allBools && /^--[^=]+$/.test(arg) || get(flags.bools, key) || !!get(flags.strings, key) || !!get(aliases, key);
-    }
-    function setKey(obj, keys, value) {
-        let o = obj;
-        keys.slice(0, -1).forEach(function(key) {
-            if (get(o, key) === undefined) {
-                o[key] = {
-                };
-            }
-            o = get(o, key);
-        });
-        const key = keys[keys.length - 1];
-        if (get(o, key) === undefined || get(flags.bools, key) || typeof get(o, key) === "boolean") {
-            o[key] = value;
-        } else if (Array.isArray(get(o, key))) {
-            o[key].push(value);
-        } else {
-            o[key] = [
-                get(o, key),
-                value
-            ];
-        }
-    }
-    function setArg(key, val, arg = undefined) {
-        if (arg && flags.unknownFn && !argDefined(key, arg)) {
-            if (flags.unknownFn(arg, key, val) === false) return;
-        }
-        const value = !get(flags.strings, key) && isNumber(val) ? Number(val) : val;
-        setKey(argv, key.split("."), value);
-        const alias = get(aliases, key);
-        if (alias) {
-            for (const x of alias){
-                setKey(argv, x.split("."), value);
-            }
-        }
-    }
-    function aliasIsBoolean(key) {
-        return getForce(aliases, key).some((x)=>typeof get(flags.bools, x) === "boolean"
-        );
-    }
-    for (const key of Object.keys(flags.bools)){
-        setArg(key, defaults[key] === undefined ? false : defaults[key]);
-    }
-    let notFlags = [];
-    if (args.includes("--")) {
-        notFlags = args.slice(args.indexOf("--") + 1);
-        args = args.slice(0, args.indexOf("--"));
-    }
-    for(let i = 0; i < args.length; i++){
-        const arg = args[i];
-        if (/^--.+=/.test(arg)) {
-            const m = arg.match(/^--([^=]+)=(.*)$/s);
-            assert(m != null);
-            const [, key, value] = m;
-            if (flags.bools[key]) {
-                const booleanValue = value !== "false";
-                setArg(key, booleanValue, arg);
-            } else {
-                setArg(key, value, arg);
-            }
-        } else if (/^--no-.+/.test(arg)) {
-            const m = arg.match(/^--no-(.+)/);
-            assert(m != null);
-            setArg(m[1], false, arg);
-        } else if (/^--.+/.test(arg)) {
-            const m = arg.match(/^--(.+)/);
-            assert(m != null);
-            const [, key] = m;
-            const next = args[i + 1];
-            if (next !== undefined && !/^-/.test(next) && !get(flags.bools, key) && !flags.allBools && (get(aliases, key) ? !aliasIsBoolean(key) : true)) {
-                setArg(key, next, arg);
-                i++;
-            } else if (/^(true|false)$/.test(next)) {
-                setArg(key, next === "true", arg);
-                i++;
-            } else {
-                setArg(key, get(flags.strings, key) ? "" : true, arg);
-            }
-        } else if (/^-[^-]+/.test(arg)) {
-            const letters = arg.slice(1, -1).split("");
-            let broken = false;
-            for(let j = 0; j < letters.length; j++){
-                const next = arg.slice(j + 2);
-                if (next === "-") {
-                    setArg(letters[j], next, arg);
-                    continue;
-                }
-                if (/[A-Za-z]/.test(letters[j]) && /=/.test(next)) {
-                    setArg(letters[j], next.split(/=(.+)/)[1], arg);
-                    broken = true;
-                    break;
-                }
-                if (/[A-Za-z]/.test(letters[j]) && /-?\d+(\.\d*)?(e-?\d+)?$/.test(next)) {
-                    setArg(letters[j], next, arg);
-                    broken = true;
-                    break;
-                }
-                if (letters[j + 1] && letters[j + 1].match(/\W/)) {
-                    setArg(letters[j], arg.slice(j + 2), arg);
-                    broken = true;
-                    break;
-                } else {
-                    setArg(letters[j], get(flags.strings, letters[j]) ? "" : true, arg);
-                }
-            }
-            const [key] = arg.slice(-1);
-            if (!broken && key !== "-") {
-                if (args[i + 1] && !/^(-|--)[^-]/.test(args[i + 1]) && !get(flags.bools, key) && (get(aliases, key) ? !aliasIsBoolean(key) : true)) {
-                    setArg(key, args[i + 1], arg);
-                    i++;
-                } else if (args[i + 1] && /^(true|false)$/.test(args[i + 1])) {
-                    setArg(key, args[i + 1] === "true", arg);
-                    i++;
-                } else {
-                    setArg(key, get(flags.strings, key) ? "" : true, arg);
-                }
-            }
-        } else {
-            if (!flags.unknownFn || flags.unknownFn(arg) !== false) {
-                argv._.push(flags.strings["_"] ?? !isNumber(arg) ? arg : Number(arg));
-            }
-            if (stopEarly) {
-                argv._.push(...args.slice(i + 1));
-                break;
-            }
-        }
-    }
-    for (const key1 of Object.keys(defaults)){
-        if (!hasKey(argv, key1.split("."))) {
-            setKey(argv, key1.split("."), defaults[key1]);
-            if (aliases[key1]) {
-                for (const x of aliases[key1]){
-                    setKey(argv, x.split("."), defaults[key1]);
-                }
-            }
-        }
-    }
-    if (doubleDash) {
-        argv["--"] = [];
-        for (const key of notFlags){
-            argv["--"].push(key);
-        }
-    } else {
-        for (const key of notFlags){
-            argv._.push(key);
-        }
-    }
-    return argv;
-}
-class IssueDescription {
-    Categories;
-    constructor(Categories){
-        this.Categories = Categories;
-    }
-}
-class CommandlineParameters {
-    HistoricalDataSourceFilename;
-    Issues;
-    NumberOfSimulations;
-    constructor(HistoricalDataSourceFilename, Issues, NumberOfSimulations){
-        this.HistoricalDataSourceFilename = HistoricalDataSourceFilename;
-        this.Issues = Issues;
-        this.NumberOfSimulations = NumberOfSimulations;
-    }
-}
-function parseCommandline(args) {
-    if (args.length == 0) printUsageAndExit();
-    const parsedArgs = parse(args, {
-        default: {
-            n: 0,
-            s: 1000
-        }
-    });
-    if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!");
-    const issues = parseIssueCategories(parsedArgs);
-    return new CommandlineParameters(parsedArgs.f, issues, parsedArgs.s);
-    function printUsageAndExit(errorMsg = "") {
-        if (errorMsg != "") {
-            console.log(`*** ${errorMsg}`);
-            console.log();
-        }
-        console.log("Use with: [-n <number of issues> | -c \"<category>,<categorgy> {; ...}\" -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]");
-        Deno.exit(1);
-    }
-    function parseIssueCategories(args) {
-        const issues = [];
-        if (args.c !== undefined) {
-            var issueCategories = args.c.split(";");
-            for (const ic of issueCategories){
-                const categories = ic.split(",");
-                const issue = categories.map((x)=>x.trim()
-                ).filter((x)=>x != ""
-                );
-                issues.push(new IssueDescription(issue));
-            }
-        }
-        if (issues.length == 0 && parsedArgs.n == 0) printUsageAndExit("Either -n or -c needs to be specified!");
-        if (parsedArgs.n < issues.length) parsedArgs.n = issues.length;
-        for(let i = issues.length + 1; i <= parsedArgs.n; i += 1)issues.push(new IssueDescription([]));
-        console.assert(issues.length == parsedArgs.n);
-        return issues;
-    }
-}
-function LoadCsv(sourceFilename, delimiter = ";") {
-    const text = Deno.readTextFileSync(sourceFilename);
-    const rows = text.split("\n");
-    const result = new Array();
-    for (const row of rows){
-        const cols = row.trim().split(delimiter);
-        result.push({
-            Cols: cols
-        });
-    }
-    return result;
-}
-class Tokenizer {
-    rules;
-    constructor(rules = []){
-        this.rules = rules;
-    }
-    addRule(test, fn) {
-        this.rules.push({
-            test,
-            fn
-        });
-        return this;
-    }
-    tokenize(string, receiver = (token)=>token
-    ) {
-        function* generator(rules) {
-            let index = 0;
-            for (const rule of rules){
-                const result = rule.test(string);
-                if (result) {
-                    const { value , length  } = result;
-                    index += length;
-                    string = string.slice(length);
-                    const token = {
-                        ...rule.fn(value),
-                        index
-                    };
-                    yield receiver(token);
-                    yield* generator(rules);
-                }
-            }
-        }
-        const tokenGenerator = generator(this.rules);
-        const tokens = [];
-        for (const token of tokenGenerator){
-            tokens.push(token);
-        }
-        if (string.length) {
-            throw new Error(`parser error: string not fully parsed! ${string.slice(0, 25)}`);
-        }
-        return tokens;
-    }
-}
-function digits(value, count = 2) {
-    return String(value).padStart(count, "0");
-}
-function createLiteralTestFunction(value) {
-    return (string)=>{
-        return string.startsWith(value) ? {
-            value,
-            length: value.length
-        } : undefined;
-    };
-}
-function createMatchTestFunction(match) {
-    return (string)=>{
-        const result = match.exec(string);
-        if (result) return {
-            value: result,
-            length: result[0].length
-        };
-    };
-}
-const defaultRules = [
-    {
-        test: createLiteralTestFunction("yyyy"),
-        fn: ()=>({
-                type: "year",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("yy"),
-        fn: ()=>({
-                type: "year",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("MM"),
-        fn: ()=>({
-                type: "month",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("M"),
-        fn: ()=>({
-                type: "month",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("dd"),
-        fn: ()=>({
-                type: "day",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("d"),
-        fn: ()=>({
-                type: "day",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("HH"),
-        fn: ()=>({
-                type: "hour",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("H"),
-        fn: ()=>({
-                type: "hour",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("hh"),
-        fn: ()=>({
-                type: "hour",
-                value: "2-digit",
-                hour12: true
-            })
-    },
-    {
-        test: createLiteralTestFunction("h"),
-        fn: ()=>({
-                type: "hour",
-                value: "numeric",
-                hour12: true
-            })
-    },
-    {
-        test: createLiteralTestFunction("mm"),
-        fn: ()=>({
-                type: "minute",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("m"),
-        fn: ()=>({
-                type: "minute",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("ss"),
-        fn: ()=>({
-                type: "second",
-                value: "2-digit"
-            })
-    },
-    {
-        test: createLiteralTestFunction("s"),
-        fn: ()=>({
-                type: "second",
-                value: "numeric"
-            })
-    },
-    {
-        test: createLiteralTestFunction("SSS"),
-        fn: ()=>({
-                type: "fractionalSecond",
-                value: 3
-            })
-    },
-    {
-        test: createLiteralTestFunction("SS"),
-        fn: ()=>({
-                type: "fractionalSecond",
-                value: 2
-            })
-    },
-    {
-        test: createLiteralTestFunction("S"),
-        fn: ()=>({
-                type: "fractionalSecond",
-                value: 1
-            })
-    },
-    {
-        test: createLiteralTestFunction("a"),
-        fn: (value)=>({
-                type: "dayPeriod",
-                value: value
-            })
-    },
-    {
-        test: createMatchTestFunction(/^(')(?<value>\\.|[^\']*)\1/),
-        fn: (match)=>({
-                type: "literal",
-                value: match.groups.value
-            })
-    },
-    {
-        test: createMatchTestFunction(/^.+?\s*/),
-        fn: (match)=>({
-                type: "literal",
-                value: match[0]
-            })
-    }, 
-];
-class DateTimeFormatter {
-    #format;
-    constructor(formatString, rules = defaultRules){
-        const tokenizer = new Tokenizer(rules);
-        this.#format = tokenizer.tokenize(formatString, ({ type , value , hour12  })=>{
-            const result = {
-                type,
-                value
-            };
-            if (hour12) result.hour12 = hour12;
-            return result;
-        });
-    }
-    format(date, options = {
-    }) {
-        let string = "";
-        const utc = options.timeZone === "UTC";
-        for (const token of this.#format){
-            const type = token.type;
-            switch(type){
-                case "year":
-                    {
-                        const value = utc ? date.getUTCFullYear() : date.getFullYear();
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2).slice(-2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "month":
-                    {
-                        const value = (utc ? date.getUTCMonth() : date.getMonth()) + 1;
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "day":
-                    {
-                        const value = utc ? date.getUTCDate() : date.getDate();
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "hour":
-                    {
-                        let value = utc ? date.getUTCHours() : date.getHours();
-                        value -= token.hour12 && date.getHours() > 12 ? 12 : 0;
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "minute":
-                    {
-                        const value = utc ? date.getUTCMinutes() : date.getMinutes();
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "second":
-                    {
-                        const value = utc ? date.getUTCSeconds() : date.getSeconds();
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    string += value;
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    string += digits(value, 2);
-                                    break;
-                                }
-                            default:
-                                throw Error(`FormatterError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "fractionalSecond":
-                    {
-                        const value = utc ? date.getUTCMilliseconds() : date.getMilliseconds();
-                        string += digits(value, Number(token.value));
-                        break;
-                    }
-                case "timeZoneName":
-                    {
-                        break;
-                    }
-                case "dayPeriod":
-                    {
-                        string += token.value ? date.getHours() >= 12 ? "PM" : "AM" : "";
-                        break;
-                    }
-                case "literal":
-                    {
-                        string += token.value;
-                        break;
-                    }
-                default:
-                    throw Error(`FormatterError: { ${token.type} ${token.value} }`);
-            }
-        }
-        return string;
-    }
-    parseToParts(string) {
-        const parts = [];
-        for (const token of this.#format){
-            const type = token.type;
-            let value = "";
-            switch(token.type){
-                case "year":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,4}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    break;
-                                }
-                        }
-                        break;
-                    }
-                case "month":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "narrow":
-                                {
-                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "short":
-                                {
-                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "long":
-                                {
-                                    value = /^[a-zA-Z]+/.exec(string)?.[0];
-                                    break;
-                                }
-                            default:
-                                throw Error(`ParserError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "day":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            default:
-                                throw Error(`ParserError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "hour":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    if (token.hour12 && parseInt(value) > 12) {
-                                        console.error(`Trying to parse hour greater than 12. Use 'H' instead of 'h'.`);
-                                    }
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{2}/.exec(string)?.[0];
-                                    if (token.hour12 && parseInt(value) > 12) {
-                                        console.error(`Trying to parse hour greater than 12. Use 'HH' instead of 'hh'.`);
-                                    }
-                                    break;
-                                }
-                            default:
-                                throw Error(`ParserError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "minute":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            default:
-                                throw Error(`ParserError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "second":
-                    {
-                        switch(token.value){
-                            case "numeric":
-                                {
-                                    value = /^\d{1,2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            case "2-digit":
-                                {
-                                    value = /^\d{2}/.exec(string)?.[0];
-                                    break;
-                                }
-                            default:
-                                throw Error(`ParserError: value "${token.value}" is not supported`);
-                        }
-                        break;
-                    }
-                case "fractionalSecond":
-                    {
-                        value = new RegExp(`^\\d{${token.value}}`).exec(string)?.[0];
-                        break;
-                    }
-                case "timeZoneName":
-                    {
-                        value = token.value;
-                        break;
-                    }
-                case "dayPeriod":
-                    {
-                        value = /^(A|P)M/.exec(string)?.[0];
-                        break;
-                    }
-                case "literal":
-                    {
-                        if (!string.startsWith(token.value)) {
-                            throw Error(`Literal "${token.value}" not found "${string.slice(0, 25)}"`);
-                        }
-                        value = token.value;
-                        break;
-                    }
-                default:
-                    throw Error(`${token.type} ${token.value}`);
-            }
-            if (!value) {
-                throw Error(`value not valid for token { ${type} ${value} } ${string.slice(0, 25)}`);
-            }
-            parts.push({
-                type,
-                value
-            });
-            string = string.slice(value.length);
-        }
-        if (string.length) {
-            throw Error(`datetime string was not fully parsed! ${string.slice(0, 25)}`);
-        }
-        return parts;
-    }
-    sortDateTimeFormatPart(parts) {
-        let result = [];
-        const typeArray = [
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "fractionalSecond", 
-        ];
-        for (const type of typeArray){
-            const current = parts.findIndex((el)=>el.type === type
-            );
-            if (current !== -1) {
-                result = result.concat(parts.splice(current, 1));
-            }
-        }
-        result = result.concat(parts);
-        return result;
-    }
-    partsToDate(parts) {
-        const date = new Date();
-        const utc = parts.find((part)=>part.type === "timeZoneName" && part.value === "UTC"
-        );
-        utc ? date.setUTCHours(0, 0, 0, 0) : date.setHours(0, 0, 0, 0);
-        for (const part of parts){
-            switch(part.type){
-                case "year":
-                    {
-                        const value = Number(part.value.padStart(4, "20"));
-                        utc ? date.setUTCFullYear(value) : date.setFullYear(value);
-                        break;
-                    }
-                case "month":
-                    {
-                        const value = Number(part.value) - 1;
-                        utc ? date.setUTCMonth(value) : date.setMonth(value);
-                        break;
-                    }
-                case "day":
-                    {
-                        const value = Number(part.value);
-                        utc ? date.setUTCDate(value) : date.setDate(value);
-                        break;
-                    }
-                case "hour":
-                    {
-                        let value = Number(part.value);
-                        const dayPeriod = parts.find((part)=>part.type === "dayPeriod"
-                        );
-                        if (dayPeriod?.value === "PM") value += 12;
-                        utc ? date.setUTCHours(value) : date.setHours(value);
-                        break;
-                    }
-                case "minute":
-                    {
-                        const value = Number(part.value);
-                        utc ? date.setUTCMinutes(value) : date.setMinutes(value);
-                        break;
-                    }
-                case "second":
-                    {
-                        const value = Number(part.value);
-                        utc ? date.setUTCSeconds(value) : date.setSeconds(value);
-                        break;
-                    }
-                case "fractionalSecond":
-                    {
-                        const value = Number(part.value);
-                        utc ? date.setUTCMilliseconds(value) : date.setMilliseconds(value);
-                        break;
-                    }
-            }
-        }
-        return date;
-    }
-    parse(string) {
-        const parts = this.parseToParts(string);
-        const sortParts = this.sortDateTimeFormatPart(parts);
-        return this.partsToDate(sortParts);
-    }
-}
-const SECOND = 1000;
-const MINUTE = 1000 * 60;
-const HOUR = MINUTE * 60;
-const DAY = HOUR * 24;
-const WEEK = DAY * 7;
-var Day;
-(function(Day) {
-    Day[Day["Sun"] = 0] = "Sun";
-    Day[Day["Mon"] = 1] = "Mon";
-    Day[Day["Tue"] = 2] = "Tue";
-    Day[Day["Wed"] = 3] = "Wed";
-    Day[Day["Thu"] = 4] = "Thu";
-    Day[Day["Fri"] = 5] = "Fri";
-    Day[Day["Sat"] = 6] = "Sat";
-})(Day || (Day = {
-}));
-function parse1(dateString, formatString) {
-    const formatter = new DateTimeFormatter(formatString);
-    const parts = formatter.parseToParts(dateString);
-    const sortParts = formatter.sortDateTimeFormatPart(parts);
-    return formatter.partsToDate(sortParts);
-}
-function difference(from, to, options) {
-    const uniqueUnits = options?.units ? [
-        ...new Set(options?.units)
-    ] : [
-        "milliseconds",
-        "seconds",
-        "minutes",
-        "hours",
-        "days",
-        "weeks",
-        "months",
-        "quarters",
-        "years", 
-    ];
-    const bigger = Math.max(from.getTime(), to.getTime());
-    const smaller = Math.min(from.getTime(), to.getTime());
-    const differenceInMs = bigger - smaller;
-    const differences = {
-    };
-    for (const uniqueUnit of uniqueUnits){
-        switch(uniqueUnit){
-            case "milliseconds":
-                differences.milliseconds = differenceInMs;
-                break;
-            case "seconds":
-                differences.seconds = Math.floor(differenceInMs / SECOND);
-                break;
-            case "minutes":
-                differences.minutes = Math.floor(differenceInMs / MINUTE);
-                break;
-            case "hours":
-                differences.hours = Math.floor(differenceInMs / HOUR);
-                break;
-            case "days":
-                differences.days = Math.floor(differenceInMs / DAY);
-                break;
-            case "weeks":
-                differences.weeks = Math.floor(differenceInMs / WEEK);
-                break;
-            case "months":
-                differences.months = calculateMonthsDifference(bigger, smaller);
-                break;
-            case "quarters":
-                differences.quarters = Math.floor(typeof differences.months !== "undefined" && differences.months / 4 || calculateMonthsDifference(bigger, smaller) / 4);
-                break;
-            case "years":
-                differences.years = Math.floor(typeof differences.months !== "undefined" && differences.months / 12 || calculateMonthsDifference(bigger, smaller) / 12);
-                break;
-        }
-    }
-    return differences;
-}
-function calculateMonthsDifference(bigger, smaller) {
-    const biggerDate = new Date(bigger);
-    const smallerDate = new Date(smaller);
-    const yearsDiff = biggerDate.getFullYear() - smallerDate.getFullYear();
-    const monthsDiff = biggerDate.getMonth() - smallerDate.getMonth();
-    const calendarDifferences = Math.abs(yearsDiff * 12 + monthsDiff);
-    const compareResult = biggerDate > smallerDate ? 1 : -1;
-    biggerDate.setMonth(biggerDate.getMonth() - compareResult * calendarDifferences);
-    const isLastMonthNotFull = biggerDate > smallerDate ? 1 : -1 === -compareResult ? 1 : 0;
-    const months = compareResult * (calendarDifferences - isLastMonthNotFull);
-    return months === 0 ? 0 : months;
-}
 class HistoricalData {
     Records;
     constructor(Records){
@@ -2692,6 +2692,46 @@ class HistoricalData {
         }
         return filteredRecords;
     }
+    get DateRange() {
+        const first = Lazy.from(this.Records).min((x)=>x.StartedOn.getTime()
+        );
+        const last = Lazy.from(this.Records).max((x)=>x.FinishedOn.getTime()
+        );
+        return [
+            new Date(first),
+            new Date(last)
+        ];
+    }
+    get Calendar() {
+        const calendar = [];
+        const range = this.DateRange;
+        var next = new Date(range[0].getTime());
+        while(next <= range[1]){
+            calendar.push(next);
+            next = new Date(next.getTime());
+            next.setDate(next.getDate() + 1);
+        }
+        return calendar;
+    }
+    get Throughputs() {
+        const tpCollection = new Map();
+        for (const d of this.Calendar){
+            tpCollection.set(d.getTime(), 0);
+        }
+        for (const r of this.Records){
+            tpCollection.set(r.FinishedOn.getTime(), tpCollection.get(r.FinishedOn.getTime()) + 1);
+        }
+        const throughputs = [];
+        for (const c of tpCollection.keys()){
+            throughputs.push(new HistoricalThroughput(new Date(c), tpCollection.get(c)));
+        }
+        return throughputs.sort(compareDates);
+        function compareDates(a, b) {
+            if (a.Date < b.Date) return -1;
+            if (a.Date > b.Date) return 1;
+            return 0;
+        }
+    }
 }
 class HistoricalRecord {
     StartedOn;
@@ -2709,6 +2749,14 @@ class HistoricalRecord {
     get CycleTimeDays() {
         if (this._cycleTime > 0) return this._cycleTime;
         return difference(this.FinishedOn, this.StartedOn).days;
+    }
+}
+class HistoricalThroughput {
+    Date;
+    Throughput;
+    constructor(Date, Throughput){
+        this.Date = Date;
+        this.Throughput = Throughput;
     }
 }
 function LoadHistory(sourceFilename, delimiter = ";") {
@@ -2802,30 +2850,30 @@ function DrawBar(value, maxValue, maxBarLength) {
     if (fractionalPart > 0) bar += fractions[Math.floor(fractionalPart * fractions.length)];
     return bar;
 }
-function Simulate(historicalDataSubsets, numberOfSimulations, aggregate) {
+function SimulateByPicking(historicalData, numberOfSimulations, aggregate) {
     const simulations = [];
     for(let i = 1; i <= numberOfSimulations; i += 1){
-        const samples = [];
-        for(let s = 0; s < historicalDataSubsets.length; s += 1){
-            const index = Math.floor(Math.random() * historicalDataSubsets[s].length);
-            samples.push(historicalDataSubsets[s][index]);
-        }
-        simulations.push(aggregate(samples));
+        simulations.push(aggregate(pickRandom));
     }
     return simulations;
+    function pickRandom() {
+        const index = Math.floor(Math.random() * historicalData.length);
+        return historicalData[index];
+    }
 }
 const args = parseCommandline(Deno.args);
 console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`);
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-const issueRecords = [];
-for (const issue of args.Issues){
-    let c = issue.Categories.join(",");
-    console.log(`- ${c == "" ? "*" : c}`);
-    issueRecords.push(history.FilterByCategories(issue.Categories));
-}
-const forecastingValues = Simulate(issueRecords, args.NumberOfSimulations, (records)=>{
-    return Lazy.from(records).select((r)=>r.CycleTimeDays
-    ).sum();
+const throughputs = history.Throughputs.map((x)=>x.Throughput
+);
+const forecastingValues = SimulateByPicking(throughputs, args.NumberOfSimulations, (pickRandom)=>{
+    var totalThroughput = 0;
+    var batchCycleTime = 0;
+    while(totalThroughput < args.Issues.length){
+        totalThroughput += pickRandom();
+        batchCycleTime += 1;
+    }
+    return batchCycleTime;
 });
 const forecast = CalculateForecast(forecastingValues);
 Plot(forecast);

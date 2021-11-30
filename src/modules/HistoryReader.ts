@@ -13,6 +13,7 @@ import { CsvRow, LoadCsv } from "./CsvReader.ts"
 import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts";
 import { Lazy } from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
+
 export class HistoricalData {
     constructor(public readonly Records: HistoricalRecord[]) { }
 
@@ -44,16 +45,14 @@ export class HistoricalData {
     }
 
     get Calendar(): Date[] {
-        const MSEC_IN_A_DAY = (1000 * 60 * 60 * 24);
         const calendar: Date[] = []
 
         const range = this.DateRange;
-        var next = range[0];
+        var next = new Date(range[0].getTime());
         while(next <= range[1]) {
-            const isWorkingDay = next.getDay() != 0 && next.getDay() != 6
-            if (isWorkingDay) calendar.push(next);
-
-            next = new Date(next.getTime() + MSEC_IN_A_DAY);
+            calendar.push(next); // all days incl. weekends
+            next = new Date(next.getTime())
+            next.setDate(next.getDate() + 1)
         }
 
         return calendar;
@@ -62,18 +61,19 @@ export class HistoricalData {
     get Throughputs(): HistoricalThroughput[] {
         const tpCollection = new Map<number,number>()
         // initialize collection
-        for(const d of this.Calendar)
+        for(const d of this.Calendar) {
             tpCollection.set(d.getTime(), 0);
+        }
         // fill collection
         for(const r of this.Records) {
-            if (tpCollection.has(r.FinishedOn.getTime()) == false)
-                tpCollection.set(r.FinishedOn.getTime(), 0)
-            tpCollection.set(r.FinishedOn.getTime(), <number>tpCollection.get(r.FinishedOn.getTime())+1)
+            tpCollection.set(r.FinishedOn.getTime(), <number>tpCollection.get(r.FinishedOn.getTime()) + 1)
         }
+
         // map collection to HistoricalThroughput[]
         const throughputs: HistoricalThroughput[] = []
-        for(const c of tpCollection.keys())
+        for(const c of tpCollection.keys()) {
             throughputs.push(new HistoricalThroughput(new Date(c), <number>tpCollection.get(c)))
+        }
         return throughputs.sort(compareDates);
 
 

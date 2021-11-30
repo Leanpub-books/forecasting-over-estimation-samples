@@ -18,13 +18,15 @@ console.log(`Parameters: ${args.HistoricalDataSourceFilename}, n:${args.Issues.l
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
 
-const forecastingValues = SimulateByPicking<number>(history.Throughputs.map(x => x.Throughput), args.NumberOfSimulations,
+const throughputs = history.Throughputs.map(x => x.Throughput);
+
+const forecastingValues = SimulateByPicking<number>(throughputs, args.NumberOfSimulations,
     (pickRandom) => {
         var totalThroughput = 0;
         var batchCycleTime = 0;
         while(totalThroughput < args.Issues.length) {
-            totalThroughput = totalThroughput + pickRandom();
-            batchCycleTime = batchCycleTime + 1;
+            totalThroughput += pickRandom();
+            batchCycleTime += 1;
         }
         return batchCycleTime;
     });
