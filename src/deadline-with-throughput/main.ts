@@ -6,7 +6,7 @@ import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 import {parseCommandline} from "../modules/CommandlineParser.ts";
 import {LoadHistory} from "../modules/HistoryReader.ts";
-import {CalculateForecast} from "../modules/Forecasting.ts";
+import {CalculateForecast, ForecastItem} from "../modules/Forecasting.ts";
 import {Plot} from "../modules/ForecastAsciiBarCharts.ts";
 import {SimulateByPicking, SimulateByServing} from "../modules/MonteCarloSimulation.ts";
 
@@ -18,12 +18,12 @@ console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
 
-var forecastingValues: number[]
+var forecast: ForecastItem[]
 
 switch(args.Mode) {
     case "tp":
         const ctthroughputs = history.Throughputs.map(x => x.Throughput);
-        forecastingValues = SimulateByPicking<number>(ctthroughputs, args.NumberOfSimulations,
+        const tpforecastingValues = SimulateByPicking<number>(ctthroughputs, args.NumberOfSimulations,
             (pickRandom) => {
                 var totalThroughput = 0;
                 var batchCycleTime = 0;
@@ -33,26 +33,27 @@ switch(args.Mode) {
                 }
                 return batchCycleTime;
             });
+        forecast = CalculateForecast(tpforecastingValues);
         break;
 
     case "dl":
         const dlthroughputs = history.Throughputs.map(x => x.Throughput);
-        forecastingValues = SimulateByServing<number>(dlthroughputs, args.Issues.length, args.NumberOfSimulations,
+        const dlforecastingValues = SimulateByServing<number>(dlthroughputs, args.Issues.length, args.NumberOfSimulations,
             values => values.reduce((a, b) => a + b, 0)
         );
+        forecast = CalculateForecast(dlforecastingValues, true);
         break;
 
     case "ct":
         const cycletimes = history.Records.map(x => x.CycleTimeDays);
-        forecastingValues = SimulateByServing<number>(cycletimes, args.Issues.length, args.NumberOfSimulations,
+        const ctforecastingValues = SimulateByServing<number>(cycletimes, args.Issues.length, args.NumberOfSimulations,
             values => values.reduce((a, b) => a + b, 0)
         );
+        forecast = CalculateForecast(ctforecastingValues);
         break;
 
     default:
         throw new Error(`*** Unsupported mode ${args.Mode}!`)
 }
-
-const forecast = CalculateForecast(forecastingValues);
 
 Plot(forecast)

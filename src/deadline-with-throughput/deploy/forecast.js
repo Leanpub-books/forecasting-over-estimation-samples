@@ -3878,7 +3878,7 @@ function LoadHistory(sourceFilename, delimiter = ";") {
         }
     }
 }
-function CalculateForecast(values) {
+function CalculateForecast(values, invert = false) {
     const lazyValues = Lazy.from(values);
     const uniqueValues = lazyValues.distinct().toArray().sort((n1, n2)=>n1 - n2
     );
@@ -3889,13 +3889,14 @@ function CalculateForecast(values) {
             )
         };
     });
-    const cycleTimesWithProbabilities = valuesWithFrequencies.select((x)=>{
+    var cycleTimesWithProbabilities = valuesWithFrequencies.select((x)=>{
         return {
             ct: x.ct,
             f: x.f,
             p: x.f / values.length
         };
     });
+    if (invert) cycleTimesWithProbabilities = cycleTimesWithProbabilities.reverse();
     const forecast = [];
     let pSum = 0;
     for (const x of cycleTimesWithProbabilities){
@@ -3984,12 +3985,12 @@ function SimulateByPicking(historicalData, numberOfSimulations, aggregate) {
 const args = parseCommandline(Deno.args);
 console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`);
 const history = LoadHistory(args.HistoricalDataSourceFilename);
-var forecastingValues;
+var forecast;
 switch(args.Mode){
     case "tp":
         const ctthroughputs = history.Throughputs.map((x)=>x.Throughput
         );
-        forecastingValues = SimulateByPicking(ctthroughputs, args.NumberOfSimulations, (pickRandom)=>{
+        const tpforecastingValues = SimulateByPicking(ctthroughputs, args.NumberOfSimulations, (pickRandom)=>{
             var totalThroughput = 0;
             var batchCycleTime = 0;
             while(totalThroughput < args.Issues.length){
@@ -3998,24 +3999,26 @@ switch(args.Mode){
             }
             return batchCycleTime;
         });
+        forecast = CalculateForecast(tpforecastingValues);
         break;
     case "dl":
         const dlthroughputs = history.Throughputs.map((x)=>x.Throughput
         );
-        forecastingValues = SimulateByServing(dlthroughputs, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
+        const dlforecastingValues = SimulateByServing(dlthroughputs, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
             , 0)
         );
+        forecast = CalculateForecast(dlforecastingValues, true);
         break;
     case "ct":
         const cycletimes = history.Records.map((x)=>x.CycleTimeDays
         );
-        forecastingValues = SimulateByServing(cycletimes, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
+        const ctforecastingValues = SimulateByServing(cycletimes, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
             , 0)
         );
+        forecast = CalculateForecast(ctforecastingValues);
         break;
     default:
         throw new Error(`*** Unsupported mode ${args.Mode}!`);
 }
-const forecast = CalculateForecast(forecastingValues);
 Plot(forecast);
 

@@ -8,7 +8,7 @@ export interface ForecastItem {
     pSum: number
 }
 
-export function CalculateForecast(values: number[]): ForecastItem[] {
+export function CalculateForecast(values: number[], invert: boolean = false): ForecastItem[] {
     const lazyValues = Lazy.from(values);
     const uniqueValues = lazyValues.distinct().toArray().sort((n1,n2) => n1 - n2);
         // .oderBy() of Lazy does not properly work :-( Have to resort to sort()
@@ -16,9 +16,11 @@ export function CalculateForecast(values: number[]): ForecastItem[] {
     const valuesWithFrequencies = Lazy.from(uniqueValues).select(x => {
         return {ct: x, f: lazyValues.count(y => y == x)}
     });
-    const cycleTimesWithProbabilities = valuesWithFrequencies.select(x => {
+    var cycleTimesWithProbabilities = valuesWithFrequencies.select(x => {
         return {ct: x.ct, f: x.f, p: x.f / values.length}
     })
+
+    if (invert) cycleTimesWithProbabilities = cycleTimesWithProbabilities.reverse();
 
     const forecast: ForecastItem[] = [];
     let pSum = 0;
