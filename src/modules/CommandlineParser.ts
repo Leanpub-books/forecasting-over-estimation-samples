@@ -1,6 +1,7 @@
 // source: https://deno.land/std@0.113.0/flags
 
 import { Args, parse} from "https://deno.land/std/flags/mod.ts"
+import { existsSync } from "https://deno.land/std/fs/mod.ts";
 
 
 export class IssueDescription {
@@ -17,6 +18,7 @@ export class CommandlineParameters {
 
 
 export function parseCommandline(args: string[]): CommandlineParameters {
+    if (args.length == 0) args = LoadFromFile();
     if (args.length == 0) printUsageAndExit();
 
     const parsedArgs = parse(args, {default: {n: 0, s: 1000, m: "tp"}})
@@ -25,6 +27,13 @@ export function parseCommandline(args: string[]): CommandlineParameters {
     const issues = parseIssueCategories(parsedArgs);
 
     return new CommandlineParameters(parsedArgs.f, parsedArgs.m, issues, parsedArgs.s);
+
+
+    function LoadFromFile(): string[] {
+        const COMMANDLINE_PARAMETERS_FILENAME = ".commandline.txt"
+        if (existsSync(COMMANDLINE_PARAMETERS_FILENAME) == false) return [];
+        return Deno.readTextFileSync(COMMANDLINE_PARAMETERS_FILENAME).split(" ");
+    }
 
 
     function printUsageAndExit(errorMsg:string = "") {

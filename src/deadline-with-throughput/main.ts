@@ -22,8 +22,8 @@ var forecastingValues: number[]
 
 switch(args.Mode) {
     case "tp":
-        const throughputs = history.Throughputs.map(x => x.Throughput);
-        forecastingValues = SimulateByPicking<number>(throughputs, args.NumberOfSimulations,
+        const ctthroughputs = history.Throughputs.map(x => x.Throughput);
+        forecastingValues = SimulateByPicking<number>(ctthroughputs, args.NumberOfSimulations,
             (pickRandom) => {
                 var totalThroughput = 0;
                 var batchCycleTime = 0;
@@ -33,6 +33,13 @@ switch(args.Mode) {
                 }
                 return batchCycleTime;
             });
+        break;
+
+    case "dl":
+        const dlthroughputs = history.Throughputs.map(x => x.Throughput);
+        forecastingValues = SimulateByServing<number>(dlthroughputs, args.Issues.length, args.NumberOfSimulations,
+            values => values.reduce((a, b) => a + b, 0)
+        );
         break;
 
     case "ct":
