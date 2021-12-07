@@ -78,20 +78,15 @@ export class HistoricalData {
 }
 
 export class HistoricalRecord {
-    private readonly _cycleTime: number = 0;
-
     readonly Categories: string[] = [];
 
     constructor(public readonly StartedOn: Date,
                 public readonly FinishedOn: Date,
-                cycleTime: number = 0,
                 categories: string = "") {
-        this._cycleTime = cycleTime;
         this.Categories = categories.split(",").map((x:string) => x.trim()).filter((x:string) => x != "*" && x != "");
     }
 
     get CycleTimeDays(): number {
-        if (this._cycleTime > 0) return this._cycleTime;
         return (<number>difference(this.FinishedOn, this.StartedOn).days);
     }
 }
@@ -111,8 +106,7 @@ export function LoadHistory(sourceFilename: string, delimiter: string = ";"): Hi
             let rec = new HistoricalRecord(
                             parse(csv[i].Cols[0], "yyyy-MM-dd"),
                             parse(csv[i].Cols[1], "yyyy-MM-dd"),
-                            Number(parseOptional(csv[i], 2, 0)),
-                            parseOptional(csv[i], 3, "") as string)
+                            parseOptional(csv[i], 2, "") as string)
             records.push(rec);
         }
         return new HistoricalData(records);

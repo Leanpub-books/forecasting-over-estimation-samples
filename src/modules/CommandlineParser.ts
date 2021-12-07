@@ -11,8 +11,9 @@ export class IssueDescription {
 export class CommandlineParameters {
     constructor(public readonly HistoricalDataSourceFilename: string,
                 public readonly Mode: string,
-                public readonly Issues: IssueDescription[],
-                public readonly NumberOfSimulations: number) {
+                public readonly N: number,
+                public readonly NumberOfSimulations: number,
+                public readonly LevelPrefix: string) {
     }
 }
 
@@ -21,12 +22,10 @@ export function parseCommandline(args: string[]): CommandlineParameters {
     if (args.length == 0) args = LoadFromFile();
     if (args.length == 0) printUsageAndExit();
 
-    const parsedArgs = parse(args, {default: {n: 0, s: 1000, m: "tp"}})
+    const parsedArgs = parse(args, {default: {n: 1, s: 10000, m: "tp", l: ""}})
     if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!")
 
-    const issues = parseIssueCategories(parsedArgs);
-
-    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, issues, parsedArgs.s);
+    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, parsedArgs.n, parsedArgs.s, parsedArgs.l);
 
 
     function LoadFromFile(): string[] {
@@ -41,34 +40,7 @@ export function parseCommandline(args: string[]): CommandlineParameters {
             console.log(`*** ${errorMsg}`)
             console.log()
         }
-        console.log("Use with: [-n <number of issues> | -c \"<category>,<categorgy> {; ...}\" -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]")
+        console.log("Use with: -f <historical data csv filename> [-m <mode: tp|dl|ct, default: tp>] [-n <number of issues>] [-l <level prefix>] [ -s <number of simulations, default: 10000> ]")
         Deno.exit(1);
-    }
-
-
-    function parseIssueCategories(args: Args) {
-        const issues: IssueDescription[] = [];
-
-        if (args.c !== undefined) {
-            var issueCategories = args.c.split(";")
-            for (const ic of issueCategories) {
-                const categories = ic.split(",")
-                const issue = categories.map((x: string) => x.trim()).filter((x:string) => x != "");
-                issues.push(new IssueDescription(issue));
-            }
-        }
-
-        if ((issues.length == 0) && (parsedArgs.n == 0))
-            printUsageAndExit("Either -n or -c needs to be specified!")
-
-        if (parsedArgs.n < issues.length)
-            parsedArgs.n = issues.length;
-
-        // add issues w/o categories until their number matches -n
-        for (let i = issues.length+1; i <= parsedArgs.n; i += 1)
-            issues.push(new IssueDescription([]));
-
-        console.assert(issues.length == parsedArgs.n);
-        return issues;
     }
 }
