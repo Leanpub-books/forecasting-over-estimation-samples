@@ -16,37 +16,21 @@ Deno.test('Load history - timestamps only', () => {
     ]));
 });
 
-Deno.test('Load history - with ct and categories', () => {
+
+
+Deno.test('Historical records with categories', () => {
     var result = LoadHistory("tests/testHistoryReader2.csv");
 
-
-    asserts.assertEquals(result.Records[0].CycleTimeDays, 99);
-    asserts.assertEquals(result.Records[1].CycleTimeDays, 100);
-
-    asserts.assertEquals(result.Records[0].Categories, ["a"]);
-    asserts.assertEquals(result.Records[1].Categories, ["b", "c"]);
-
-    asserts.assertEquals(result, new HistoricalData( [
-        new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, "a"),
-        new HistoricalRecord(parse("2021-11-02", "yyyy-MM-dd"), parse("2021-11-07", "yyyy-MM-dd"), 100, " b , c")
-    ]));
-});
-
-
-Deno.test('Historical records with no categories', () => {
-    var result = LoadHistory("tests/testHistoryReader2.csv");
-
-
-    let rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, "");
+    let rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), "");
     asserts.assertEquals(rec.Categories, []);
 
-    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, "  , ,");
+    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), "  , ,");
     asserts.assertEquals(rec.Categories, []);
 
-    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, "*");
+    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), "*");
     asserts.assertEquals(rec.Categories, []);
 
-    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), 99, ", *,a , ");
+    rec = new HistoricalRecord(parse("2021-10-31", "yyyy-MM-dd"), parse("2021-11-02", "yyyy-MM-dd"), ", *,a , ");
     asserts.assertEquals(rec.Categories, ["a"]);
 });
 

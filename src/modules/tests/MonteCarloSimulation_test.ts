@@ -41,13 +41,11 @@ Deno.test("Simulate by picking", () => {
             while(totalThroughput < 3) {
                 if (dayOfWeek != 5 && dayOfWeek != 6) {
                     const r = pickRandom()
-                    console.log(`   ${r}`)
                     totalThroughput += r; // no throughput on weekends!
                 }
                 batchCycleTime += 1;
                 dayOfWeek = (dayOfWeek + 1) % 7;
             }
-            console.log(batchCycleTime)
             return batchCycleTime;
         });
 })
