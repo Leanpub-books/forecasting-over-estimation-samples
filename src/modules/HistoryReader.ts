@@ -14,6 +14,11 @@ import { parse, difference } from "https://deno.land/std@0.113.0/datetime/mod.ts
 import { Lazy } from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 
+export class HistoricalRecordGroup {
+    constructor(public readonly Category: string, public readonly Records:HistoricalRecord[]) {}
+}
+
+
 export class HistoricalData {
     constructor(public readonly Records: HistoricalRecord[]) { }
 
@@ -84,6 +89,21 @@ export class HistoricalData {
     CategoriesWithPrefix(prefix: string): string[] {
         return Lazy.from(this.Categories).where(c => c.startsWith(prefix)).toArray();
     }
+
+    GroupByCategories(includeUncategorizedRecords:boolean = true): HistoricalRecordGroup[] {
+        const recsWithNoCategories = includeUncategorizedRecords
+                                        ? Lazy.from(this.Records).where(r => r.Categories.length == 0)
+                                                                 .select(r => { return {Category: "", Record: r}})
+                                        : [];
+        const recsWithCategories = Lazy.from(this.Records)
+                                       .selectMany(r => r.Categories.map(c => { return {Category: c, Record: r} }));
+        return Lazy.from(recsWithNoCategories).concat(recsWithCategories)
+                   .groupBy(x => x.Category,
+                            x => x.Record,
+                            (c,rs) => new HistoricalRecordGroup(c, Array.from(rs)))
+                   .orderBy(x => x.Category)
+                   .toArray();
+    }
 }
 
 export class HistoricalRecord {
@@ -97,6 +117,10 @@ export class HistoricalRecord {
 
     get CycleTimeDays(): number {
         return (<number>difference(this.FinishedOn, this.StartedOn).days);
+    }
+
+    InCategory(categoryName: string): boolean {
+        return Lazy.from(this.Categories).count(c => c == categoryName) > 0;
     }
 }
 

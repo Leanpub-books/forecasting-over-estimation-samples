@@ -1,7 +1,7 @@
 import * as asserts from "https://deno.land/std/testing/asserts.ts";
 
 import { parse, difference, format } from "https://deno.land/std@0.113.0/datetime/mod.ts";
-import {HistoricalData, HistoricalRecord, LoadHistory} from "../HistoryReader.ts"
+import {HistoricalData, HistoricalRecord, HistoricalRecordGroup, LoadHistory} from "../HistoryReader.ts"
 
 
 Deno.test("Get first beginning date and last ending date", () =>{
@@ -166,4 +166,63 @@ Deno.test("Categories with prefix", () => {
     asserts.assertEquals(sut.CategoriesWithPrefix("x_"), ["x_a", "x_b", "x_c"])
     asserts.assertEquals(sut.CategoriesWithPrefix("X_"), []) // filter is case-sensitive
     asserts.assertEquals(sut.CategoriesWithPrefix(""), ["a", "c", "x_a", "x_b", "x_c"])
+})
+
+
+Deno.test("Check record for category", () => {
+    const sut = new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"),
+                           "a,bb,bcd");
+    asserts.assertEquals(sut.InCategory("a"), true);
+    asserts.assertEquals(sut.InCategory("bb"), true);
+    asserts.assertEquals(sut.InCategory("b"), false);
+    asserts.assertEquals(sut.InCategory(""), false);
+})
+
+Deno.test("Group by category", () => {
+    const r1 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-01", "yyyy-MM-dd"), "")
+    const r2 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-02", "yyyy-MM-dd"), "a")
+    const r3 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-03", "yyyy-MM-dd"), "a,b")
+    const r4 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-04", "yyyy-MM-dd"), "b,c")
+    const r5 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-01", "yyyy-MM-dd"), "")
+
+    const sut = new HistoricalData(
+        [
+            r1,
+            r4,
+            r2,
+            r5,
+            r3,
+        ]
+    );
+
+    asserts.assertEquals(sut.GroupByCategories(false), [
+        new HistoricalRecordGroup("a", [r2,r3]),
+        new HistoricalRecordGroup("b", [r4,r3]),
+        new HistoricalRecordGroup("c", [r4]),
+    ]);
+})
+
+Deno.test("Group by category incl no category recs", () => {
+    const r1 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-01", "yyyy-MM-dd"), "")
+    const r2 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-02", "yyyy-MM-dd"), "a")
+    const r3 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-03", "yyyy-MM-dd"), "a,b")
+    const r4 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-04", "yyyy-MM-dd"), "b,c")
+    const r5 = new HistoricalRecord(parse("2021-10-01", "yyyy-MM-dd"), parse("2021-10-01", "yyyy-MM-dd"), "")
+
+    const sut = new HistoricalData(
+        [
+            r1,
+            r4,
+            r2,
+            r5,
+            r3,
+        ]
+    );
+
+    asserts.assertEquals(sut.GroupByCategories(), [
+        new HistoricalRecordGroup("", [r1,r5]),
+        new HistoricalRecordGroup("a", [r2,r3]),
+        new HistoricalRecordGroup("b", [r4,r3]),
+        new HistoricalRecordGroup("c", [r4]),
+    ]);
 })
