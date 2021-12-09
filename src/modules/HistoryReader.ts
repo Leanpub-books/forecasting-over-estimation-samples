@@ -75,6 +75,11 @@ export class HistoricalData {
                    .orderBy(tp => tp.Date.getTime())
                    .toArray();
     }
+
+
+    get Categories(): string[] {
+        return Lazy.from(this.Records).selectMany(r => r.Categories).distinct().orderBy(c => c).toArray();
+    }
 }
 
 export class HistoricalRecord {

@@ -125,3 +125,29 @@ Deno.test("Get throughputs across sumer/winter time switch", () => {
         1
     ]);
 })
+
+
+Deno.test("List of categories", () => {
+    const sut = new HistoricalData(
+        [
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), ""),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "c"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "a,b"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "a")
+        ]
+    );
+
+    asserts.assertEquals(sut.Categories, ["a", "b", "c"])
+})
+
+
+Deno.test("No categories", () => {
+    const sut = new HistoricalData(
+        [
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd")),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"))
+        ]
+    );
+
+    asserts.assertEquals(sut.Categories, [])
+})
