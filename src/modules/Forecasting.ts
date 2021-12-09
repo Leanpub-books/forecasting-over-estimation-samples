@@ -9,16 +9,26 @@ export interface ForecastItem {
 }
 
 export function CalculateForecast(values: number[], invert: boolean = false): ForecastItem[] {
-    const lazyValues = Lazy.from(values);
-    const uniqueValues = lazyValues.distinct().toArray().sort((n1,n2) => n1 - n2);
-        // .oderBy() of Lazy does not properly work :-( Have to resort to sort()
+    return CalculateForecastFromFrequencies(CalculateFrequencies(values), invert);
+}
 
-    const valuesWithFrequencies = Lazy.from(uniqueValues).select(x => {
-        return {ct: x, f: lazyValues.count(y => y == x)}
-    });
-    var cycleTimesWithProbabilities = valuesWithFrequencies.select(x => {
-        return {ct: x.ct, f: x.f, p: x.f / values.length}
-    })
+function CalculateFrequencies(values: number[]): {v:number, f:number}[] {
+    const lazyValues = Lazy.from(values);
+    const uniqueValues = Lazy.from(values).distinct()
+                             .toArray()
+                             .sort((n1,n2) => n1 - n2);
+                // .oderBy() of Lazy somehow does not work properly; it does only lexical sorting :-( Have to resort to sort()
+    return Lazy.from(uniqueValues)
+               .select(x => { return {v: x, f: lazyValues.count(y => y == x)} })
+               .toArray();
+}
+
+export function CalculateForecastFromFrequencies(values: {v:number, f:number}[], invert: boolean = false): ForecastItem[] {
+    var totalNumberOfSamples = values.reduce((a,e) => a + e.f, 0);
+    var cycleTimesWithProbabilities = Lazy.from(values)
+                                          .select(x => { return {v: x.v, f: x.f, p: x.f / totalNumberOfSamples} })
+                                          .toArray()
+                                          .sort((a,b) => a.v - b.v)
 
     if (invert) cycleTimesWithProbabilities = cycleTimesWithProbabilities.reverse();
 
@@ -26,7 +36,7 @@ export function CalculateForecast(values: number[], invert: boolean = false): Fo
     let pSum = 0;
     for (const x of cycleTimesWithProbabilities) {
         pSum = pSum + x.p;
-        const f = {ct: x.ct, f: x.f, p: x.p, pSum: pSum};
+        const f = {ct: x.v, f: x.f, p: x.p, pSum: pSum};
         forecast.push(f);
     }
     return forecast;

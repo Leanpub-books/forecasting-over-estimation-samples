@@ -2,6 +2,7 @@ import * as asserts from "https://deno.land/std/testing/asserts.ts";
 
 import { parse, difference, format } from "https://deno.land/std@0.113.0/datetime/mod.ts";
 import {HistoricalData, HistoricalRecord, HistoricalRecordGroup, LoadHistory} from "../HistoryReader.ts"
+import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 
 Deno.test("Get first beginning date and last ending date", () =>{
@@ -225,4 +226,44 @@ Deno.test("Group by category incl no category recs", () => {
         new HistoricalRecordGroup("b", [r4,r3]),
         new HistoricalRecordGroup("c", [r4]),
     ]);
+})
+
+
+Deno.test("Get item frequencies per category", ()=> {
+    const history = new HistoricalData(
+        [
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), ""),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_1,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_2,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_2,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_3,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_3,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_3,ep_1"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_x,ep_2"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_y,ep_2"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "us_y,ep_2"),
+        ]
+    );
+
+    asserts.assertEquals(CalculateItemFrequencies(history, "us_"), [
+        {Category:"us_1", NumberOfItems:1},
+        {Category:"us_2", NumberOfItems:2},
+        {Category:"us_3", NumberOfItems:3},
+        {Category:"us_x", NumberOfItems:1},
+        {Category:"us_y", NumberOfItems:2},
+    ])
+
+    asserts.assertEquals(CalculateItemFrequencies(history, "ep_"), [
+        {Category:"ep_1", NumberOfItems:6},
+        {Category:"ep_2", NumberOfItems:3},
+    ])
+
+
+    function CalculateItemFrequencies(history: HistoricalData, prefix: string): {Category:string, NumberOfItems:number}[] {
+        var levelCategories = Lazy.from(history.CategoriesWithPrefix(prefix));
+        return Lazy.from(history.GroupByCategories(false))
+                   .where(g => levelCategories.contains(g.Category))
+                   .select(g => {return {Category: g.Category, NumberOfItems: g.Records.length}})
+                   .toArray();
+    }
 })
