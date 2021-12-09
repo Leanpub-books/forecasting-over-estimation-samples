@@ -80,6 +80,10 @@ export class HistoricalData {
     get Categories(): string[] {
         return Lazy.from(this.Records).selectMany(r => r.Categories).distinct().orderBy(c => c).toArray();
     }
+
+    CategoriesWithPrefix(prefix: string): string[] {
+        return Lazy.from(this.Categories).where(c => c.startsWith(prefix)).toArray();
+    }
 }
 
 export class HistoricalRecord {

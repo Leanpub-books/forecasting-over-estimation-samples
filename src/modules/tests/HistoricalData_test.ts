@@ -151,3 +151,19 @@ Deno.test("No categories", () => {
 
     asserts.assertEquals(sut.Categories, [])
 })
+
+
+Deno.test("Categories with prefix", () => {
+    const sut = new HistoricalData(
+        [
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), ""),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "x_c"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "a,x_b"),
+            new HistoricalRecord(parse("2021-10-30", "yyyy-MM-dd"), parse("2021-10-30", "yyyy-MM-dd"), "x_a,c")
+        ]
+    );
+
+    asserts.assertEquals(sut.CategoriesWithPrefix("x_"), ["x_a", "x_b", "x_c"])
+    asserts.assertEquals(sut.CategoriesWithPrefix("X_"), []) // filter is case-sensitive
+    asserts.assertEquals(sut.CategoriesWithPrefix(""), ["a", "c", "x_a", "x_b", "x_c"])
+})
