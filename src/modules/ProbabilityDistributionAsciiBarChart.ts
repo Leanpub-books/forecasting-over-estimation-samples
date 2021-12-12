@@ -1,21 +1,21 @@
 import { Lazy } from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 
-interface ForecastBarItem {
-    ct: number
+interface BarChartItem {
+    v: number
     p: number
     pSum: number
 }
 
 
-export function Plot(barItem: ForecastBarItem[]) {
+export function Plot(barItem: BarChartItem[]) {
     const data: BarchartItem[] = [];
-    for(const v of barItem) {
-        const ctText = v.ct.toString().padStart(5)
-        const pText = (100*v.p).toFixed(1).padStart(5) + "%"
-        const pSumText = (100*v.pSum).toFixed(1).padStart(5) + "%"
+    for(const i of barItem) {
+        const ctText = i.v.toString().padStart(5)
+        const pText = (100*i.p).toFixed(1).padStart(5) + "%"
+        const pSumText = (100*i.pSum).toFixed(1).padStart(5) + "%"
 
-        data.push({xLabel: `${ctText} ${pSumText}`, y: 100*v.p, yLabel: pText});
+        data.push({xLabel: `${ctText} ${pSumText}`, y: 100*i.p, yLabel: pText});
     }
 
     console.log("--- FORECAST ---");

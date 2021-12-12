@@ -6,8 +6,8 @@ import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 import {parseCommandline} from "../modules/CommandlineParser.ts";
 import {HistoricalData, LoadHistory} from "../modules/HistoryReader.ts";
-import {CalculateForecast, CalculateForecastFromFrequencies, ForecastItem} from "../modules/Forecasting.ts";
-import {Plot} from "../modules/ForecastAsciiBarCharts.ts";
+import {CalculateProbabilityDistribution, CalculateForecastFromFrequencies, ProbabilityDistributionItem} from "../modules/ProbabilityDistribution.ts";
+import {Plot} from "../modules/ProbabilityDistributionAsciiBarChart.ts";
 import {SimulateByPicking, SimulateByServing} from "../modules/MonteCarloSimulation.ts";
 
 
@@ -17,7 +17,7 @@ console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n
 
 const history = LoadHistory(args.HistoricalDataSourceFilename);
 
-var forecast: ForecastItem[]
+var forecast: ProbabilityDistributionItem[]
 switch(args.Mode) {
     // How long will n issues take based on throughput?
     case "tp":
@@ -35,7 +35,7 @@ switch(args.Mode) {
                     }
                     return batchCycleTime;
                 });
-            forecast = CalculateForecast(tpforecastingValues);
+            forecast = CalculateProbabilityDistribution(tpforecastingValues);
         } else {
             // forecast for a level above issues
 
@@ -79,7 +79,7 @@ switch(args.Mode) {
         const dlforecastingValues = SimulateByServing<number>(dlthroughputs, args.N, args.NumberOfSimulations,
             values => values.reduce((a, b) => a + b, 0)
         );
-        forecast = CalculateForecast(dlforecastingValues, true);
+        forecast = CalculateProbabilityDistribution(dlforecastingValues, true);
         break;
 
     // How long will n issues take based on cylce times?
@@ -88,7 +88,7 @@ switch(args.Mode) {
         const ctforecastingValues = SimulateByServing<number>(cycletimes, args.N, args.NumberOfSimulations,
             values => values.reduce((a, b) => a + b, 0)
         );
-        forecast = CalculateForecast(ctforecastingValues);
+        forecast = CalculateProbabilityDistribution(ctforecastingValues);
         break;
 
     default:

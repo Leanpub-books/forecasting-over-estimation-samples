@@ -1,7 +1,7 @@
 import * as asserts from "https://deno.land/std/testing/asserts.ts";
 
-import {CalculateForecast} from "../Forecasting.ts";
-import {Plot} from "../ForecastAsciiBarCharts.ts";
+import { ProbabilityDistribution } from "../ProbabilityDistribution.ts";
+import {Plot} from "../ProbabilityDistributionAsciiBarChart.ts";
 
 import {SimulateByPicking, SimulateByServingFromMultipleSubsets} from "../MonteCarloSimulation.ts";
 
@@ -12,8 +12,7 @@ Deno.test("Simulate single dice roll", () => {
     const result = SimulateByServingFromMultipleSubsets<number>([historicalData], 1000,
         values => values[0]);
 
-    const forecast = CalculateForecast(result);
-    Plot(forecast);
+    Plot(ProbabilityDistribution.fromValues(result).Items());
     // Assert by looking at distribution
 })
 
@@ -24,8 +23,7 @@ Deno.test("Simulate two dice rolls", () => {
     const result = SimulateByServingFromMultipleSubsets<number>([historicalData, historicalData], 1000,
         values => values[0] + values[1]);
 
-    const forecast = CalculateForecast(result);
-    Plot(forecast);
+    Plot(ProbabilityDistribution.fromValues(result).Items());
     // Assert by looking at distribution
 })
 
