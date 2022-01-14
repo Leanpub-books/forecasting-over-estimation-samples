@@ -6,7 +6,7 @@ import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 import {parseCommandline} from "../modules/CommandlineParser.ts";
 import {HistoricalData, LoadHistory} from "../modules/HistoryReader.ts";
-import {CalculateProbabilityDistribution, CalculateForecastFromFrequencies, ProbabilityDistributionItem} from "../modules/ProbabilityDistribution.ts";
+import {ProbabilityDistribution, ProbabilityDistributionItem} from "../modules/ProbabilityDistribution.ts";
 import {Plot} from "../modules/ProbabilityDistributionAsciiBarChart.ts";
 import {SimulateByPicking, SimulateByServing} from "../modules/MonteCarloSimulation.ts";
 
@@ -35,7 +35,7 @@ switch(args.Mode) {
                     }
                     return batchCycleTime;
                 });
-            forecast = CalculateProbabilityDistribution(tpforecastingValues);
+            forecast = ProbabilityDistribution.fromValues(tpforecastingValues);
         } else {
             // forecast for a level above issues
 
