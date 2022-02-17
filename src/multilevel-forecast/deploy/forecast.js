@@ -1347,22 +1347,18 @@ var EOL;
     EOL["CRLF"] = "\r\n";
 })(EOL || (EOL = {
 }));
-class IssueDescription {
-    Categories;
-    constructor(Categories){
-        this.Categories = Categories;
-    }
-}
 class CommandlineParameters {
     HistoricalDataSourceFilename;
     Mode;
-    Issues;
+    N;
     NumberOfSimulations;
-    constructor(HistoricalDataSourceFilename, Mode, Issues, NumberOfSimulations){
+    LevelPrefix;
+    constructor(HistoricalDataSourceFilename, Mode, N, NumberOfSimulations, LevelPrefix){
         this.HistoricalDataSourceFilename = HistoricalDataSourceFilename;
         this.Mode = Mode;
-        this.Issues = Issues;
+        this.N = N;
         this.NumberOfSimulations = NumberOfSimulations;
+        this.LevelPrefix = LevelPrefix;
     }
 }
 function parseCommandline(args) {
@@ -1370,14 +1366,14 @@ function parseCommandline(args) {
     if (args.length == 0) printUsageAndExit();
     const parsedArgs = parse(args, {
         default: {
-            n: 0,
-            s: 1000,
-            m: "tp"
+            n: 1,
+            s: 10000,
+            m: "tp",
+            l: ""
         }
     });
     if (parsedArgs.f == undefined) printUsageAndExit("Missing source of historical data (-f)!");
-    const issues = parseIssueCategories(parsedArgs);
-    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, issues, parsedArgs.s);
+    return new CommandlineParameters(parsedArgs.f, parsedArgs.m, parsedArgs.n, parsedArgs.s, parsedArgs.l);
     function LoadFromFile() {
         const COMMANDLINE_PARAMETERS_FILENAME = ".commandline.txt";
         if (existsSync(COMMANDLINE_PARAMETERS_FILENAME) == false) return [];
@@ -1388,26 +1384,8 @@ function parseCommandline(args) {
             console.log(`*** ${errorMsg}`);
             console.log();
         }
-        console.log("Use with: [-n <number of issues> | -c \"<category>,<categorgy> {; ...}\" -f <historical data csv filename> [ -s <number of simulations (default: 1000)> ]");
+        console.log("Use with: -f <historical data csv filename> [-m <mode: tp*|dl|ct>] [-n <number of issues>] [-l <level prefix>] [ -s <number of simulations, default: 10000> ]");
         Deno.exit(1);
-    }
-    function parseIssueCategories(args) {
-        const issues = [];
-        if (args.c !== undefined) {
-            var issueCategories = args.c.split(";");
-            for (const ic of issueCategories){
-                const categories = ic.split(",");
-                const issue = categories.map((x)=>x.trim()
-                ).filter((x)=>x != ""
-                );
-                issues.push(new IssueDescription(issue));
-            }
-        }
-        if (issues.length == 0 && parsedArgs.n == 0) printUsageAndExit("Either -n or -c needs to be specified!");
-        if (parsedArgs.n < issues.length) parsedArgs.n = issues.length;
-        for(let i = issues.length + 1; i <= parsedArgs.n; i += 1)issues.push(new IssueDescription([]));
-        console.assert(issues.length == parsedArgs.n);
-        return issues;
     }
 }
 function LoadCsv(sourceFilename, delimiter = ";") {
@@ -3783,6 +3761,14 @@ Lazy.empty;
 Lazy.from;
 Lazy.range;
 Lazy.repeat;
+class HistoricalRecordGroup {
+    Category;
+    Records;
+    constructor(Category, Records){
+        this.Category = Category;
+        this.Records = Records;
+    }
+}
 class HistoricalData {
     Records;
     constructor(Records){
@@ -3835,23 +3821,54 @@ class HistoricalData {
         ).orderBy((tp)=>tp.Date.getTime()
         ).toArray();
     }
+    get Categories() {
+        return Lazy.from(this.Records).selectMany((r)=>r.Categories
+        ).distinct().orderBy((c)=>c
+        ).toArray();
+    }
+    CategoriesWithPrefix(prefix) {
+        return Lazy.from(this.Categories).where((c)=>c.startsWith(prefix)
+        ).toArray();
+    }
+    GroupByCategories(includeUncategorizedRecords = true) {
+        const recsWithNoCategories = includeUncategorizedRecords ? Lazy.from(this.Records).where((r)=>r.Categories.length == 0
+        ).select((r)=>{
+            return {
+                Category: "",
+                Record: r
+            };
+        }) : [];
+        const recsWithCategories = Lazy.from(this.Records).selectMany((r)=>r.Categories.map((c)=>{
+                return {
+                    Category: c,
+                    Record: r
+                };
+            })
+        );
+        return Lazy.from(recsWithNoCategories).concat(recsWithCategories).groupBy((x)=>x.Category
+        , (x)=>x.Record
+        , (c, rs)=>new HistoricalRecordGroup(c, Array.from(rs))
+        ).orderBy((x)=>x.Category
+        ).toArray();
+    }
 }
 class HistoricalRecord {
     StartedOn;
     FinishedOn;
-    _cycleTime = 0;
     Categories = [];
-    constructor(StartedOn, FinishedOn, cycleTime = 0, categories = ""){
+    constructor(StartedOn, FinishedOn, categories = ""){
         this.StartedOn = StartedOn;
         this.FinishedOn = FinishedOn;
-        this._cycleTime = cycleTime;
         this.Categories = categories.split(",").map((x)=>x.trim()
         ).filter((x)=>x != "*" && x != ""
         );
     }
     get CycleTimeDays() {
-        if (this._cycleTime > 0) return this._cycleTime;
         return difference(this.FinishedOn, this.StartedOn).days;
+    }
+    InCategory(categoryName) {
+        return Lazy.from(this.Categories).count((c)=>c == categoryName
+        ) > 0;
     }
 }
 class HistoricalThroughput {
@@ -3868,7 +3885,7 @@ function LoadHistory(sourceFilename, delimiter = ";") {
     function CreateHistory(csv) {
         const records = Array();
         for(let i = 1; i < csv.length; i++){
-            let rec = new HistoricalRecord(parse4(csv[i].Cols[0], "yyyy-MM-dd"), parse4(csv[i].Cols[1], "yyyy-MM-dd"), Number(parseOptional(csv[i], 2, 0)), parseOptional(csv[i], 3, ""));
+            let rec = new HistoricalRecord(parse4(csv[i].Cols[0], "yyyy-MM-dd"), parse4(csv[i].Cols[1], "yyyy-MM-dd"), parseOptional(csv[i], 2, ""));
             records.push(rec);
         }
         return new HistoricalData(records);
@@ -3878,48 +3895,15 @@ function LoadHistory(sourceFilename, delimiter = ";") {
         }
     }
 }
-function CalculateForecast(values, invert = false) {
-    const lazyValues = Lazy.from(values);
-    const uniqueValues = lazyValues.distinct().toArray().sort((n1, n2)=>n1 - n2
-    );
-    const valuesWithFrequencies = Lazy.from(uniqueValues).select((x)=>{
-        return {
-            ct: x,
-            f: lazyValues.count((y)=>y == x
-            )
-        };
-    });
-    var cycleTimesWithProbabilities = valuesWithFrequencies.select((x)=>{
-        return {
-            ct: x.ct,
-            f: x.f,
-            p: x.f / values.length
-        };
-    });
-    if (invert) cycleTimesWithProbabilities = cycleTimesWithProbabilities.reverse();
-    const forecast = [];
-    let pSum = 0;
-    for (const x of cycleTimesWithProbabilities){
-        pSum = pSum + x.p;
-        const f = {
-            ct: x.ct,
-            f: x.f,
-            p: x.p,
-            pSum: pSum
-        };
-        forecast.push(f);
-    }
-    return forecast;
-}
 function Plot(barItem) {
     const data = [];
-    for (const v of barItem){
-        const ctText = v.ct.toString().padStart(5);
-        const pText = (100 * v.p).toFixed(1).padStart(5) + "%";
-        const pSumText = (100 * v.pSum).toFixed(1).padStart(5) + "%";
+    for (const i of barItem){
+        const ctText = i.v.toString().padStart(5);
+        const pText = (100 * i.p).toFixed(1).padStart(5) + "%";
+        const pSumText = (100 * i.pSum).toFixed(1).padStart(5) + "%";
         data.push({
             xLabel: `${ctText} ${pSumText}`,
-            y: 100 * v.p,
+            y: 100 * i.p,
             yLabel: pText
         });
     }
@@ -3954,6 +3938,60 @@ function DrawBar(value, maxValue, maxBarLength) {
     if (fractionalPart > 0) bar += fractions[Math.floor(fractionalPart * fractions.length)];
     return bar;
 }
+class Histogram {
+    Items;
+    constructor(items){
+        this.Items = items;
+    }
+    static fromValues(values) {
+        const lazyValues = Lazy.from(values);
+        const uniqueValues = lazyValues.distinct().toArray().sort((n1, n2)=>n1 - n2
+        );
+        const items = Lazy.from(uniqueValues).select((x)=>{
+            return {
+                v: x,
+                f: lazyValues.count((y)=>y == x
+                )
+            };
+        }).toArray();
+        return new Histogram(items);
+    }
+}
+class ProbabilityDistribution {
+    static fromValues(values) {
+        return new ProbabilityDistribution(Histogram.fromValues(values));
+    }
+    _histogram;
+    constructor(histogram){
+        this._histogram = histogram;
+    }
+    Items(inverted = false) {
+        var totalNumberOfSamples = this._histogram.Items.reduce((a, e)=>a + e.f
+        , 0);
+        var cycleTimesWithProbabilities = Lazy.from(this._histogram.Items).select((x)=>{
+            return {
+                v: x.v,
+                f: x.f,
+                p: x.f / totalNumberOfSamples
+            };
+        }).toArray().sort((a, b)=>a.v - b.v
+        );
+        if (inverted) cycleTimesWithProbabilities = cycleTimesWithProbabilities.reverse();
+        const forecast = [];
+        let pSum = 0;
+        for (const x of cycleTimesWithProbabilities){
+            pSum = pSum + x.p;
+            const f = {
+                v: x.v,
+                f: x.f,
+                p: x.p,
+                pSum: pSum
+            };
+            forecast.push(f);
+        }
+        return forecast;
+    }
+}
 function SimulateByServing(historicalData, numberOfRandomSamples, numberOfSimulations, aggregate) {
     const subsets = [];
     for(let i = 1; i <= numberOfRandomSamples; i += 1)subsets.push(historicalData);
@@ -3982,40 +4020,101 @@ function SimulateByPicking(historicalData, numberOfSimulations, aggregate) {
         return historicalData[index];
     }
 }
+function ForecastBatchCycleTimeFromThroughputs(history, batchSize, simulationSize) {
+    const throughputs = history.Throughputs.map((x)=>x.Throughput
+    );
+    const simulatedCycleTimes = SimulateBatchCycleTimeFromThroughputs(throughputs, batchSize, simulationSize);
+    return ProbabilityDistribution.fromValues(simulatedCycleTimes).Items();
+}
+function SimulateBatchCycleTimeFromThroughputs(throughputs, batchSize, simulationSize) {
+    return SimulateByPicking(throughputs, simulationSize, (pickRandom)=>{
+        var totalThroughput = 0;
+        var batchCycleTime = 0;
+        while(totalThroughput < batchSize){
+            totalThroughput += pickRandom();
+            batchCycleTime += 1;
+        }
+        return batchCycleTime;
+    });
+}
+function ForecastBatchsizeFromThroughputs(history, periodDuration, simulationSize) {
+    const throughputs = history.Throughputs.map((x)=>x.Throughput
+    );
+    const simulatedBatchSizes = SimulateByServing(throughputs, periodDuration, simulationSize, (values)=>values.reduce((a, b)=>a + b
+        , 0)
+    );
+    return ProbabilityDistribution.fromValues(simulatedBatchSizes).Items(true);
+}
+function ForecastBatchCycleTimeFromCycleTimes(history, batchSize, simulationSize) {
+    const cycletimes = history.Records.map((x)=>x.CycleTimeDays
+    );
+    const simulatedCycleTimes = SimulateByServing(cycletimes, batchSize, simulationSize, (values)=>values.reduce((a, b)=>a + b
+        , 0)
+    );
+    return ProbabilityDistribution.fromValues(simulatedCycleTimes).Items();
+}
+function ForecastHiLevelBatchCycleTimeFromThroughputs(history, levelPrefix, hiLevelBatchSize, simulationSize) {
+    const throughputs = history.Throughputs.map((x)=>x.Throughput
+    );
+    const simulatedIssueBatchSizes = Phase1(history, levelPrefix, hiLevelBatchSize, simulationSize);
+    const histogramItems = Phase2(simulatedIssueBatchSizes, throughputs, simulationSize);
+    return new ProbabilityDistribution(new Histogram(histogramItems)).Items();
+    function Phase1(history, levelPrefix, hiLevelBatchSize, simulationSize) {
+        const issueFrequencies = CalculateHiLevelIssueFrequencies(history, levelPrefix);
+        return SimulateIssueBatchSizes(issueFrequencies, hiLevelBatchSize, simulationSize);
+    }
+    function Phase2(simulatedIssueBatchSizes, throughputs, simulationSize) {
+        const cycleTimeFrequencies = new CycleTimeFrequencies();
+        for (const batchSize of simulatedIssueBatchSizes){
+            const simulatedCylceTimes = SimulateBatchCycleTimeFromThroughputs(throughputs, batchSize, simulationSize);
+            cycleTimeFrequencies.Update(simulatedCylceTimes);
+        }
+        return cycleTimeFrequencies.Histogram;
+    }
+}
+function CalculateHiLevelIssueFrequencies(history, levelPrefix) {
+    var levelCategories = Lazy.from(history.CategoriesWithPrefix(levelPrefix));
+    return Lazy.from(history.GroupByCategories(false)).where((g)=>levelCategories.contains(g.Category)
+    ).select((g)=>g.Records.length
+    ).toArray();
+}
+function SimulateIssueBatchSizes(issueFrequencies, hiLevelBatchSize, simulationSize) {
+    return SimulateByServing(issueFrequencies, hiLevelBatchSize, simulationSize, (values)=>values.reduce((a, b)=>a + b
+        , 0)
+    );
+}
+class CycleTimeFrequencies {
+    cycleTimeFrequencies = new Map();
+    Update(cycleTimes) {
+        for (const ct of cycleTimes){
+            if (this.cycleTimeFrequencies.has(ct) == false) this.cycleTimeFrequencies.set(ct, 0);
+            this.cycleTimeFrequencies.set(ct, this.cycleTimeFrequencies.get(ct) + 1);
+        }
+    }
+    get Histogram() {
+        return Array.from(this.cycleTimeFrequencies.keys()).map((x)=>{
+            return {
+                v: x,
+                f: this.cycleTimeFrequencies.get(x)
+            };
+        });
+    }
+}
 const args = parseCommandline(Deno.args);
-console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n:${args.Issues.length}, s:${args.NumberOfSimulations}`);
 const history = LoadHistory(args.HistoricalDataSourceFilename);
+console.log(`Parameters: ${args.HistoricalDataSourceFilename}, m:${args.Mode}, n:${args.N}, s:${args.NumberOfSimulations}, l:${args.LevelPrefix}`);
 var forecast;
 switch(args.Mode){
     case "tp":
-        const ctthroughputs = history.Throughputs.map((x)=>x.Throughput
-        );
-        const tpforecastingValues = SimulateByPicking(ctthroughputs, args.NumberOfSimulations, (pickRandom)=>{
-            var totalThroughput = 0;
-            var batchCycleTime = 0;
-            while(totalThroughput < args.Issues.length){
-                totalThroughput += pickRandom();
-                batchCycleTime += 1;
-            }
-            return batchCycleTime;
-        });
-        forecast = CalculateForecast(tpforecastingValues);
+        if (args.LevelPrefix == "") forecast = ForecastBatchCycleTimeFromThroughputs(history, args.N, args.NumberOfSimulations);
+        else forecast = ForecastHiLevelBatchCycleTimeFromThroughputs(history, args.LevelPrefix, args.N, args.NumberOfSimulations);
         break;
     case "dl":
-        const dlthroughputs = history.Throughputs.map((x)=>x.Throughput
-        );
-        const dlforecastingValues = SimulateByServing(dlthroughputs, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
-            , 0)
-        );
-        forecast = CalculateForecast(dlforecastingValues, true);
+        forecast = ForecastBatchsizeFromThroughputs(history, args.N, args.NumberOfSimulations);
         break;
     case "ct":
-        const cycletimes = history.Records.map((x)=>x.CycleTimeDays
-        );
-        const ctforecastingValues = SimulateByServing(cycletimes, args.Issues.length, args.NumberOfSimulations, (values)=>values.reduce((a, b)=>a + b
-            , 0)
-        );
-        forecast = CalculateForecast(ctforecastingValues);
+        console.log("*** Please note: Calculating a batch cycle time based on issue cycle times is fairly inaccurate for teams. ***");
+        forecast = ForecastBatchCycleTimeFromCycleTimes(history, args.N, args.NumberOfSimulations);
         break;
     default:
         throw new Error(`*** Unsupported mode ${args.Mode}!`);

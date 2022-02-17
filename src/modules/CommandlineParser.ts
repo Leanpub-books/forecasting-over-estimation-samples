@@ -1,6 +1,6 @@
 // source: https://deno.land/std@0.113.0/flags
 
-import { Args, parse} from "https://deno.land/std/flags/mod.ts"
+import { parse} from "https://deno.land/std/flags/mod.ts"
 import { existsSync } from "https://deno.land/std/fs/mod.ts";
 
 

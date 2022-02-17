@@ -2,12 +2,7 @@ import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
 
 import {HistoricalData} from "./HistoryReader.ts";
 import {SimulateBatchCycleTimeFromThroughputs} from "./Forecasting.ts";
-import {
-    Histogram,
-    HistogramItem,
-    ProbabilityDistribution,
-    ProbabilityDistributionItem
-} from "./ProbabilityDistribution.ts";
+import {Histogram,HistogramItem, ProbabilityDistribution,ProbabilityDistributionItem} from "./ProbabilityDistribution.ts";
 import {SimulateByServing} from "./MonteCarloSimulation.ts";
 
 

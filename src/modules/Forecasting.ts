@@ -1,12 +1,5 @@
-import {Lazy} from 'https://deno.land/x/lazy@v1.7.3/lib/mod.ts';
-
 import {HistoricalData} from "./HistoryReader.ts";
-import {
-    ProbabilityDistribution,
-    ProbabilityDistributionItem,
-    Histogram,
-    HistogramItem
-} from "./ProbabilityDistribution.ts";
+import {ProbabilityDistribution,ProbabilityDistributionItem} from "./ProbabilityDistribution.ts";
 import {SimulateByPicking, SimulateByServing} from "./MonteCarloSimulation.ts";
 
 /*
