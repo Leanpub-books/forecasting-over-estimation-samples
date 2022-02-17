@@ -1,5 +1,5 @@
 /*
-    Usage: forecast.ts -f historical_data.csv [ -s 1000 ] [ -n 5 | -c "bugfix,k2; feature,k8" ]
+    Usage: forecast.ts -f historical_data.csv -m [tp*|ct|dl] [ -s 1000 ] [ -n 5 | -c "bugfix,k2; feature,k8" ] [-l us_]
  */
 
 
