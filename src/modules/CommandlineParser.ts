@@ -40,7 +40,7 @@ export function parseCommandline(args: string[]): CommandlineParameters {
             console.log(`*** ${errorMsg}`)
             console.log()
         }
-        console.log("Use with: -f <historical data csv filename> [-m <mode: tp|dl|ct, default: tp>] [-n <number of issues>] [-l <level prefix>] [ -s <number of simulations, default: 10000> ]")
+        console.log("Use with: -f <historical data csv filename> [-m <mode: tp*|dl|ct>] [-n <number of issues>] [-l <level prefix>] [ -s <number of simulations, default: 10000> ]")
         Deno.exit(1);
     }
 }
