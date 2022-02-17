@@ -17,22 +17,29 @@ export interface ProbabilityDistributionItem {
 export class Histogram {
     public readonly Items: HistogramItem[];
 
-    constructor(values: number[]) {
+    constructor(items: HistogramItem[]) {
+        this.Items = items;
+    }
+
+
+    static fromValues(values: number[]): Histogram {
         const lazyValues = Lazy.from(values);
         const uniqueValues = lazyValues.distinct()
                                  .toArray()
                                  .sort((n1,n2) => n1 - n2);
                                     // .oderBy() of Lazy somehow does not work properly;
                                     // it does only lexical sorting :-( Have to resort to sort()
-        this.Items = Lazy.from(uniqueValues)
+        const items = Lazy.from(uniqueValues)
                          .select(x => { return {v: x, f: lazyValues.count(y => y == x)} })
                          .toArray();
+        return new Histogram(items);
     }
 }
 
+
 export class ProbabilityDistribution {
     static fromValues(values: number[]): ProbabilityDistribution {
-        return new ProbabilityDistribution(new Histogram(values));
+        return new ProbabilityDistribution(Histogram.fromValues(values));
     }
 
 
