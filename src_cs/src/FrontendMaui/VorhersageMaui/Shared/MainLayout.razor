@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+	<main>
+        <article class="content px-4">
+            <ErrorBoundary @ref="errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent Context="Exeption">
+                    <div class="alert alert-primary">
+                        <h2>@Exeption.GetType()</h2>
+                        <h2>@Exeption.Message</h2>
+                        <button class="btn btn-info" @onclick="() => errorBoundary.Recover()">Clear</button>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+        </article>
+	</main>
+</div>
+
+@code{
+
+    private ErrorBoundary errorBoundary;
+
+    protected override void OnInitialized()
+    {
+        errorBoundary = new ErrorBoundary();
+    }
+}

@@ -1,0 +1,66 @@
+﻿@*//VorhersageChart.razor*@
+
+@inject IJSRuntime JSRuntime
+
+<canvas id="@Id"></canvas>
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; }
+
+    [Parameter]
+    public string[] BarData { get; set; }
+
+    [Parameter]
+    public string[] LineData { get; set; }
+
+    [Parameter]
+    public string[] Labels { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) 
+    {
+        if (firstRender)
+        {
+            //Here we create an anonymous type with all the options that need to be sent to Chart.js
+            var config = new
+            {
+                Type = "scatter",
+                Options = new
+                {
+                    Responsive = true,
+                    Scales = new
+                    {
+                        leftYAxis = new
+                        {
+                            Type = "linear",
+                            Position = "left"
+                        },
+                        rightYAxis = new
+                        {
+                            Type = "linear",
+                            Position = "right",
+                        }
+                    }
+                },
+                Data = new
+                {
+                    Datasets = new[]
+                    {
+                        new { Data = LineData, Type = "line", Label = "Wahrscheinliche Umsetzung nach Tagen % ", BackgroundColor = "yellow", yAxisID = "rightYAxis"},
+                        new { Data = BarData, Type = "bar", Label = "Wahrscheinlichkeit Umsetzung in Tagen %", BackgroundColor = "blue", yAxisID = "leftYAxis"}
+                    },
+                    Labels = Labels
+                }
+            };
+
+            await JSRuntime.InvokeVoidAsync("chartSetup", Id, config);
+        }
+    }
+    protected string tickFormat(object value, object index, object ticks)
+    {
+        return value.ToString() + '%';
+    }
+}
+
+
