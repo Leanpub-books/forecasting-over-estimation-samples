@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="..\..\..\Daten\Historie1.csv" Link="Historie1.csv">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\ConsoleUI\ConsoleUI.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="CsvProvider">
+	    <HintPath>..\..\..\bin\Debug\net6.0\CsvProvider.dll</HintPath>
+	  </Reference>
+	  <Reference Include="RandomProvider">
+	    <HintPath>..\..\..\bin\Debug\net6.0\RandomProvider.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Vorhersage">
+	    <HintPath>..\..\..\bin\Debug\net6.0\Vorhersage.dll</HintPath>
+	  </Reference>
+	  <Reference Include="VorhersageContracts">
+	    <HintPath>..\..\..\contracts\Debug\net6.0\VorhersageContracts.dll</HintPath>
+	  </Reference>
+	  <Reference Include="VorhersageProzessor">
+	    <HintPath>..\..\..\bin\Debug\net6.0\VorhersageProzessor.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "VorhersageConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "Historie1.csv 5 1000"
+    }
+  }
+}
