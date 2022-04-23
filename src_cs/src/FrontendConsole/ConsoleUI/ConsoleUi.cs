@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
-using VorhersageContracts;
+using forecast_contracts;
 
-namespace ConsoleUI
+namespace forecast.ui.console
 {
     public class ConsoleUi: IConsoleUi
     {

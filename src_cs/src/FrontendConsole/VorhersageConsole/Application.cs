@@ -1,8 +1,7 @@
 ﻿using System;
-using ConsoleUI;
-using VorhersageContracts;
+using forecast_contracts;
 
-namespace VorhersageConsole
+namespace forecast.ui.console
 {
     internal class Application
     {

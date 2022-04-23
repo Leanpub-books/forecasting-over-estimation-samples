@@ -1,10 +1,9 @@
 using System;
 using System.IO;
-using ConsoleUI;
 using NUnit.Framework;
-using VorhersageContracts;
+using forecast_contracts;
 
-namespace ConsoleUITests
+namespace forecast.ui.console
 {
     public class ConsoleUiTests
     {

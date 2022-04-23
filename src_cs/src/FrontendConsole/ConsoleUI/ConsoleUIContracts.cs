@@ -1,6 +1,6 @@
-﻿using VorhersageContracts;
+﻿using forecast_contracts;
 
-namespace ConsoleUI
+namespace forecast.ui.console
 {
     public interface IConsoleUi
     {

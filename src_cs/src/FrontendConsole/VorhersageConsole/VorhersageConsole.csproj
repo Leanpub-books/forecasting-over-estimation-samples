@@ -9,10 +9,12 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<OutputPath>../../../bin/net6.0/</OutputPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<OutputPath>../../../bin/net6.0/</OutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -27,19 +29,19 @@
 
 	<ItemGroup>
 	  <Reference Include="CsvProvider">
-	    <HintPath>..\..\..\bin\Debug\net6.0\CsvProvider.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\CsvProvider.dll</HintPath>
+	  </Reference>
+	  <Reference Include="forecast_contracts">
+	    <HintPath>..\..\..\contracts\net6.0\forecast_contracts.dll</HintPath>
 	  </Reference>
 	  <Reference Include="RandomProvider">
-	    <HintPath>..\..\..\bin\Debug\net6.0\RandomProvider.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\RandomProvider.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Vorhersage">
-	    <HintPath>..\..\..\bin\Debug\net6.0\Vorhersage.dll</HintPath>
-	  </Reference>
-	  <Reference Include="VorhersageContracts">
-	    <HintPath>..\..\..\contracts\Debug\net6.0\VorhersageContracts.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\Vorhersage.dll</HintPath>
 	  </Reference>
 	  <Reference Include="VorhersageProzessor">
-	    <HintPath>..\..\..\bin\Debug\net6.0\VorhersageProzessor.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\VorhersageProzessor.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 

@@ -1,12 +1,6 @@
-﻿using ConsoleUI;
-using CsvProvider;
-using RandomProvider;
-using System;
-using Vorhersage;
-using VorhersageContracts;
-using VorhersageProzessor;
+﻿using forecast.backend;
 
-namespace VorhersageConsole
+namespace forecast.ui.console
 {
     internal record CommandLineArguments(string Path, int AnzahlIncidents, int AnzahlSimualtionen);
     internal class Program
@@ -14,9 +8,9 @@ namespace VorhersageConsole
         static void Main(string[] args)
         {
             var ui = new ConsoleUi();
-            var csvAdapter = new FileProvider();
+            var csvAdapter = new CsvProvider();
             var randomProvider = new RandomNumberProvider();
-            var domain = new VorhersageImpl(randomProvider);
+            var domain = new Vorhersage(randomProvider);
             var processor = new Processor(csvAdapter, domain);
             var app = new Application(ui, processor);
 
