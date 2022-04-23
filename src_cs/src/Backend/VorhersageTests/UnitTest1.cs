@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using forecast.Vorhersage;
+using forecast.backend;
 using forecast_contracts;
 
 #pragma warning disable CS8618
@@ -10,13 +10,13 @@ namespace VorhersageTests
     public class UnitTest1
     {
         private IRandomProvider _testRandomProvider;
-        private VorhersageImpl _sut;
+        private Vorhersage _sut;
 
         [SetUp]
         public void Setup()
         {
             _testRandomProvider = new TestRandomProvider();
-            _sut = new VorhersageImpl(_testRandomProvider);
+            _sut = new Vorhersage(_testRandomProvider);
         }
 
         [Test]

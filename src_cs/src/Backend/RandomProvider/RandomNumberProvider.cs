@@ -1,7 +1,7 @@
 ﻿using System;
 using forecast_contracts;
 
-namespace forecast.RandomProvider
+namespace forecast.backend
 {
     public class RandomNumberProvider : IRandomProvider
     {

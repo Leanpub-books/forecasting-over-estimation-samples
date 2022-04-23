@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
-using CsvProvider;
+using forecast.backend;
 
 namespace CsvProviderTests
 {
@@ -16,7 +16,7 @@ namespace CsvProviderTests
         {
             private string _pathHistorie1Csv = "../../../../../../Daten/Historie1.csv";
             private string _HistorieZeile1 = "Beginn;Ende";
-            private FileProvider _sut = new();
+            private CsvProvider _sut = new();
 
             [Test]
             public async Task Lese_Historie1_20Issues()

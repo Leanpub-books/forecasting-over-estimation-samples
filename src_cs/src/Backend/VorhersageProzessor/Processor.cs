@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using forecast_contracts;
 
-namespace VorhersageProzessor
+namespace forecast.backend
 {
     public class Processor : IVorhersageProzessor
     {

@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using forecast.RandomProvider;
+using forecast.backend;
 using forecast_contracts;
 
 namespace RandomProviderTests
