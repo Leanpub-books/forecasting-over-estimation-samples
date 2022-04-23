@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using VorhersageContracts;
+using forecast_contracts;
 
 namespace VorhersageProzessor
 {

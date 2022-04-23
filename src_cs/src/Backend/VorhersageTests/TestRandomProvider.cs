@@ -1,4 +1,4 @@
-﻿using VorhersageContracts;
+﻿using forecast_contracts;
 
 namespace VorhersageTests
 {

@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Runtime.InteropServices.ComTypes;
-using VorhersageContracts;
+using forecast_contracts;
 
-namespace RandomProvider
+namespace forecast.RandomProvider
 {
     public class RandomNumberProvider : IRandomProvider
     {

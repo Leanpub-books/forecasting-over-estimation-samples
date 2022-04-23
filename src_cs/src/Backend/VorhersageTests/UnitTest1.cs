@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Vorhersage;
-using VorhersageContracts;
+using forecast.Vorhersage;
+using forecast_contracts;
+
 #pragma warning disable CS8618
 
 namespace VorhersageTests

@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using VorhersageContracts;
+using forecast_contracts;
 
 [assembly: InternalsVisibleTo("VorhersageTests")]
-namespace Vorhersage
+namespace forecast.Vorhersage
 {
     public class VorhersageImpl : IVorhersage
     {

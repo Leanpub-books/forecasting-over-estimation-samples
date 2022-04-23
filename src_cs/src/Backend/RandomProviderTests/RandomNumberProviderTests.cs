@@ -1,7 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using NUnit.Framework;
-using RandomProvider;
-using VorhersageContracts;
+using forecast.RandomProvider;
+using forecast_contracts;
 
 namespace RandomProviderTests
 {

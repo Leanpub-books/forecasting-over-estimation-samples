@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="VorhersageContracts">
-      <HintPath>..\..\..\contracts\Debug\net6.0\VorhersageContracts.dll</HintPath>
+    <Reference Include="forecast_contracts">
+      <HintPath>..\..\..\contracts\net6.0\forecast_contracts.dll</HintPath>
     </Reference>
   </ItemGroup>
 
