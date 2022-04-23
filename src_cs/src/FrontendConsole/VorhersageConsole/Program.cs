@@ -1,4 +1,5 @@
-﻿using forecast.backend;
+﻿using System;
+using forecast.backend;
 
 namespace forecast.ui.console
 {
@@ -20,7 +21,17 @@ namespace forecast.ui.console
 
         static CommandLineArguments ParseArguments(string[] args)
         {
-            return new CommandLineArguments(args[0], int.Parse(args[1]), int.Parse(args[2]));
+            if (args.Length < 2) {
+                Console.Error.WriteLine("Usage: forecast <Dateiname der hist. Daten> <Anzahl Issues> [<Anzahl Simulationsläufe>]");
+                Environment.Exit(1);
+            }
+
+            var filename = args[0];
+            var numberOfIssues = int.Parse(args[1]);
+            var numberOfSimilations = 1000;
+            if (args.Length == 3) numberOfSimilations = int.Parse(args[2]);
+            
+            return new CommandLineArguments(filename, numberOfIssues, numberOfSimilations);
         }
     }
 
