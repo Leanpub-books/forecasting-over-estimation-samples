@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<AssemblyName>forecast</AssemblyName>
+		<RootNamespace>forecast.ui.console</RootNamespace>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

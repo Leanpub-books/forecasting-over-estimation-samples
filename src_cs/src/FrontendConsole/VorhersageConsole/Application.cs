@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using forecast_contracts;
 
 namespace forecast.ui.console
@@ -8,10 +9,9 @@ namespace forecast.ui.console
         private readonly IConsoleUi ui;
         private readonly IVorhersageProzessor processor;
 
-        public Application(IConsoleUi ui, IVorhersageProzessor processor)
-        {
-            this.ui = ui ?? throw new ArgumentNullException(nameof(ui));
-            this.processor = processor ?? throw new ArgumentNullException(nameof(processor));
+        public Application(IConsoleUi ui, IVorhersageProzessor processor) {
+            this.ui = ui;
+            this.processor = processor;
         }
 
         public void Run(string path, int anzahlIssues, int anzahlSimulationen)
