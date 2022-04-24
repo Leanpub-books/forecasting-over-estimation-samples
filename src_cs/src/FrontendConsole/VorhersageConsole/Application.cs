@@ -16,7 +16,7 @@ namespace forecast.ui.console
 
         public void Run(string path, int anzahlIssues, int anzahlSimulationen)
         {
-            var ergebnis = processor.VorhersageErstellenAsync(new VorhersageParameter(path, anzahlIssues, anzahlSimulationen)).Result;
+            var ergebnis = processor.VorhersageErstellenAsync(path, anzahlIssues, anzahlSimulationen).Result;
             ui.ErgebnisseAnzeigen(ergebnis);
         }
     }

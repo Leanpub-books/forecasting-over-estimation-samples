@@ -10,35 +10,17 @@ namespace forecast.backend
     {
         private readonly IRandomProvider _randomProvider;
 
-        public Vorhersage(IRandomProvider randomProvider)
-        {
+        public Vorhersage(IRandomProvider randomProvider) {
             _randomProvider = randomProvider;
         }
 
         public VorhersageWerte Berechnen(Historie historie, int issues, int simulations)
         {
-            List<int> gaussSimulation = SimulationGenerieren(historie.Incidents.Select(x => x.Tage).ToArray(), issues, simulations);
+            List<int> gaussSimulation = new Simulator(simulations, _randomProvider).Run(historie.Incidents.Select(x => x.Tage).ToArray(), issues);
             return new VorhersageWerte(Statistik(gaussSimulation));
         }
 
-        internal List<int> SimulationGenerieren(int[] cycleTimes, int issues, int simulations)
-        {
-            int max = cycleTimes.Length;
-            List<int> result = new();
 
-            for (int simulationIndex=0; simulationIndex < simulations; simulationIndex++)
-            {
-                int value = 0;
-                for (int issueIndex = 0; issueIndex < issues; issueIndex++)
-                {
-                    int randomNumber = _randomProvider.Next(max-1);
-                    value += cycleTimes[randomNumber];
-                }
-                result.Add(value);
-            }
-
-            return result;
-        }
 
         internal IEnumerable<VorhersageWert> Statistik(List<int> gaussSimulation)
         {

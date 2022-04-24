@@ -4,5 +4,5 @@ namespace forecast_contracts;
 
 public interface IVorhersageProzessor
 {
-    public Task<VorhersageWerte> VorhersageErstellenAsync(VorhersageParameter vorhersageParameter);
+    public Task<VorhersageWerte> VorhersageErstellenAsync(string filepath, int numberOfIssues, int numberOfSimulations);
 }
