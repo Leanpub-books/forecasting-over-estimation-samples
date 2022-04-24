@@ -15,14 +15,12 @@ class Simulator {
     }
         
         
-    public List<int> Run(int[] cycleTimes, int issues) {
-        var max = cycleTimes.Length;
-
+    public IEnumerable<int> Run(int[] cycleTimes, int issues) {
         return Enumerable.Range(1, _numberOfSimulations).Select(_ => {
             return Enumerable.Range(1, issues).Aggregate(0, (prognosis, _) => {
-                var randomNumber = _randomProvider.Next(max-1);
+                var randomNumber = _randomProvider.Next(cycleTimes.Length - 1);
                 return prognosis + cycleTimes[randomNumber];
             });
-        }).ToList();
+        });
     }
 }

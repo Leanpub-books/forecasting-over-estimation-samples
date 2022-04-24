@@ -10,15 +10,16 @@ namespace VorhersageTests
     public class TestVorhersage
     {
         private IRandomProvider _testRandomProvider;
-        private Vorhersage _sut;
+        private IVorhersagen _sut;
 
         [SetUp]
         public void Setup()
         {
             _testRandomProvider = new TestRandomProvider();
-            _sut = new Vorhersage(_testRandomProvider);
+            _sut = new Augur(_testRandomProvider);
         }
 
+        
         [Test]
         public void Test_SimulationGenerieren()
         {
@@ -38,10 +39,10 @@ namespace VorhersageTests
         public void Test_Gruppieren()
         {
             //Arrange
-            List<int> input = new List<int>() { 2, 4, 3, 3, 1, 0, 1, 2, 4, 0, 1, 3 };
+            var input = new[] { 2, 4, 3, 3, 1, 0, 1, 2, 4, 0, 1, 3 };
 
             //Act
-            Dictionary<int, int> gruppiert = _sut.Gruppieren(input);
+            Dictionary<int, int> gruppiert = Statistiker.Gruppieren(input);
 
             //Assert
             Dictionary<int, int> expected = new Dictionary<int, int>();
@@ -66,7 +67,7 @@ namespace VorhersageTests
             gruppiert.Add(4, 2);
 
             //Act
-            IEnumerable<VorhersageWert> vorhersagen = _sut.Normieren(gruppiert);
+            IEnumerable<VorhersageWert> vorhersagen = Statistiker.Normieren(gruppiert);
 
             //Assert
             List<VorhersageWert> expected = new List<VorhersageWert>

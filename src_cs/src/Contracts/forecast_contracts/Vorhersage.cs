@@ -2,7 +2,7 @@
 
 namespace forecast_contracts
 {
-    public record VorhersageWerte(
+    public record Vorhersage(
         IEnumerable<VorhersageWert> Werte
         );
 

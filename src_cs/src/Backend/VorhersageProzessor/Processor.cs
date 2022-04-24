@@ -6,16 +6,16 @@ namespace forecast.backend
     public class Processor : IVorhersageProzessor
     {
         private readonly ICsvProvider csvProvider;
-        private readonly IVorhersage vorhersage;
+        private readonly IVorhersagen vorhersage;
 
-        public Processor(ICsvProvider csvProvider, IVorhersage vorhersage) {
+        public Processor(ICsvProvider csvProvider, IVorhersagen vorhersage) {
             this.csvProvider = csvProvider;
             this.vorhersage = vorhersage;
         }
 
-        public async Task<VorhersageWerte> VorhersageErstellenAsync(string filepath, int numberOfIssues, int numberOfSimulations) {
+        public async Task<Vorhersage> VorhersageErstellenAsync(string filepath, int numberOfIssues, int numberOfSimulations) {
             var historie = await csvProvider.AuslesenAsync(filepath);
-            return vorhersage.Berechnen(historie, numberOfIssues, numberOfSimulations);
+            return vorhersage.Vorhersagen(historie, numberOfIssues, numberOfSimulations);
         }
     }
 }
