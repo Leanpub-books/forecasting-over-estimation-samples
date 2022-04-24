@@ -48,7 +48,7 @@ namespace forecast.ui.console
             var vorhersage = new VorhersageWert(5, 0.031, 1.0);
             var sut = new ConsoleUi();
 
-            sut.ErgebnisseAnzeigen(new VorhersageWerte(new[] { vorhersage}));
+            sut.ErgebnisseAnzeigen(new Vorhersage(new[] { vorhersage}));
             var result = ReadStreamToEnd();
 
             Assert.AreEqual($"  5 100.0% ███████████████████████████████  3.1%{Environment.NewLine}", result);
@@ -61,7 +61,7 @@ namespace forecast.ui.console
             var vorhersage2 = new VorhersageWert(5, 0.021, 0.042);
             var sut = new ConsoleUi();
 
-            sut.ErgebnisseAnzeigen(new VorhersageWerte(new[] { vorhersage1, vorhersage2 }));
+            sut.ErgebnisseAnzeigen(new Vorhersage(new[] { vorhersage1, vorhersage2 }));
             var result = ReadStreamToEnd();
 
             var expected = $"  5 100.0% ███████████████████████████████  3.1%{Environment.NewLine}" +

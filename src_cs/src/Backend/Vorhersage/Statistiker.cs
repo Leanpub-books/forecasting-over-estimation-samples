@@ -12,13 +12,13 @@ class Statistiker
         return vorhersagen;
     }
 
-    internal static Dictionary<int, int> Gruppieren(int[] simulationsergebnisse)
+    internal static IDictionary<int, int> Gruppieren(int[] simulationsergebnisse)
     {
         var min = simulationsergebnisse.Min();
         var max = simulationsergebnisse.Max();
 
         return simulationsergebnisse.Aggregate(
-            new Dictionary<int, int>(),
+            new SortedDictionary<int,int>(),
             (gruppen, wert) => {
                 if (!gruppen.ContainsKey(wert)) gruppen.Add(wert, 0);
                 gruppen[wert]++;
@@ -26,7 +26,7 @@ class Statistiker
             });
     }
 
-    internal static IEnumerable<VorhersageWert> Normieren(Dictionary<int, int> gruppierteVerteilung)
+    internal static IEnumerable<VorhersageWert> Normieren(IDictionary<int, int> gruppierteVerteilung)
     {
         int area = gruppierteVerteilung.Sum(x => x.Value);
 

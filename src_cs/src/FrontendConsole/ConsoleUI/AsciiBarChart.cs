@@ -10,16 +10,16 @@ class AsciiBarChart {
         
     public string[] Bars { get; init; }
 
-    public AsciiBarChart(VorhersageWerte vorhersageWerte) {
-        this.Bars = vorhersageWerte.Werte.Select(Render).ToArray();
+    public AsciiBarChart(Vorhersage vorhersage) {
+        this.Bars = vorhersage.Werte.Select(Render).ToArray();
     }
 
 
-    private string Render(VorhersageWert vorhersageWert) {
-        var kumulierteformattiert = (vorhersageWert.KumulierteWahrscheinlichkeit * 100).ToString(FormatString, _cultureInfo);
-        var balken = new string('█', (int)(vorhersageWert.RelativeHäufigkeit * 1000));
-        var realitveFormattiert = (vorhersageWert.RelativeHäufigkeit * 100).ToString(FormatString, _cultureInfo);
+    private string Render(VorhersageWert wert) {
+        var kumulierteformattiert = (wert.KumulierteWahrscheinlichkeit * 100).ToString(FormatString, _cultureInfo);
+        var balken = new string('█', (int)(wert.RelativeHäufigkeit * 1000));
+        var realitveFormattiert = (wert.RelativeHäufigkeit * 100).ToString(FormatString, _cultureInfo);
 
-        return $"{vorhersageWert.Dauer, 3} {kumulierteformattiert, 5}% {balken}  {realitveFormattiert}%";
+        return $"{wert.Dauer, 3} {kumulierteformattiert, 5}% {balken}  {realitveFormattiert}%";
     }
 }

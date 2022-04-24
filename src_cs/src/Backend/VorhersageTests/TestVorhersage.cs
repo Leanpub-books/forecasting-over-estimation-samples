@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using forecast.backend;
 using forecast_contracts;
@@ -42,7 +43,7 @@ namespace VorhersageTests
             var input = new[] { 2, 4, 3, 3, 1, 0, 1, 2, 4, 0, 1, 3 };
 
             //Act
-            Dictionary<int, int> gruppiert = Statistiker.Gruppieren(input);
+            IDictionary<int, int> gruppiert = Statistiker.Gruppieren(input);
 
             //Assert
             Dictionary<int, int> expected = new Dictionary<int, int>();
@@ -51,8 +52,10 @@ namespace VorhersageTests
             expected.Add(2, 2);
             expected.Add(3, 3);
             expected.Add(4, 2);
-
             Assert.That(gruppiert, Is.EquivalentTo(expected));
+
+            // Dict soll die Gruppen in aufsteigender Sortierung enthalten
+            Assert.That(gruppiert.Keys.ToArray(), Is.EqualTo(new[]{0,1,2,3,4}));
         }
 
         [Test]

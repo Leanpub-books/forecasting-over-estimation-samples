@@ -13,7 +13,7 @@ internal class Program
         var ui = new ConsoleUi();
         var csvAdapter = new CsvProvider();
         var randomProvider = new RandomNumberProvider();
-        var domain = new Vorhersage(randomProvider);
+        var domain = new Augur(randomProvider);
         var processor = new Processor(csvAdapter, domain);
         var app = new Application(ui, processor);
 

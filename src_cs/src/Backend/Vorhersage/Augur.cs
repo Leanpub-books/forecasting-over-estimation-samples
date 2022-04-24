@@ -13,12 +13,8 @@ namespace forecast.backend
         }
 
         public Vorhersage Vorhersagen(Historie historie, int issues, int simulations) {
-            var gaussSimulation = new Simulator(simulations, _randomProvider).Run(historie.CycleTimes, issues);
-            return new Vorhersage(Statistiker.Auswerten(gaussSimulation));
+            var simulationsergebnis = new Simulator(simulations, _randomProvider).Run(historie.CycleTimes, issues);
+            return new Vorhersage(Statistiker.Auswerten(simulationsergebnis));
         }
-
-
-
-        
     }
 }
