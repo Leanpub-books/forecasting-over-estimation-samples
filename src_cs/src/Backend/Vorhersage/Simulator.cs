@@ -13,13 +13,27 @@ class Simulator {
         _numberOfSimulations = numberOfSimulations;
         _randomProvider = randomProvider;
     }
+    
+    
+    public IEnumerable<int> RunWithThroughputs(int[] throughputs, int issues) {
+        return Enumerable.Range(1, _numberOfSimulations).Select(_ => {
+            var totalCycleTime = 0;
+            var issuesDelivered = 0;
+            while (issuesDelivered < issues) {
+                totalCycleTime++;
+                var i = _randomProvider.Next(throughputs.Length - 1);
+                issuesDelivered += throughputs[i];
+            }
+            return totalCycleTime;
+        });
+    }
         
         
-    public IEnumerable<int> Run(int[] cycleTimes, int issues) {
+    public IEnumerable<int> RunWithCycleTimes(int[] cycleTimes, int issues) {
         return Enumerable.Range(1, _numberOfSimulations).Select(_ => {
             return Enumerable.Range(1, issues).Aggregate(0, (prognosis, _) => {
-                var randomNumber = _randomProvider.Next(cycleTimes.Length - 1);
-                return prognosis + cycleTimes[randomNumber];
+                var i = _randomProvider.Next(cycleTimes.Length - 1);
+                return prognosis + cycleTimes[i];
             });
         });
     }

@@ -11,9 +11,14 @@ namespace forecast.backend
         public Augur(IRandomProvider randomProvider) {
             _randomProvider = randomProvider;
         }
+        
+        public Vorhersage VorhersagenMitDurchsatz(Historie historie, int issues, int simulations) {
+            var simulationsergebnis = new Simulator(simulations, _randomProvider).RunWithThroughputs(historie.Durchsätze, issues);
+            return new Vorhersage(Statistiker.Auswerten(simulationsergebnis));
+        }
 
-        public Vorhersage Vorhersagen(Historie historie, int issues, int simulations) {
-            var simulationsergebnis = new Simulator(simulations, _randomProvider).Run(historie.CycleTimes, issues);
+        public Vorhersage VorhersagenMitCycleTime(Historie historie, int issues, int simulations) {
+            var simulationsergebnis = new Simulator(simulations, _randomProvider).RunWithCycleTimes(historie.CycleTimes, issues);
             return new Vorhersage(Statistiker.Auswerten(simulationsergebnis));
         }
     }

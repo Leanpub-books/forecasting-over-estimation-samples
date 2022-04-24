@@ -15,7 +15,7 @@ namespace forecast.backend
 
         public async Task<Vorhersage> VorhersageErstellenAsync(string filepath, int numberOfIssues, int numberOfSimulations) {
             var historie = await csvProvider.AuslesenAsync(filepath);
-            return augur.Vorhersagen(historie, numberOfIssues, numberOfSimulations);
+            return augur.VorhersagenMitDurchsatz(historie, numberOfIssues, numberOfSimulations);
         }
     }
 }

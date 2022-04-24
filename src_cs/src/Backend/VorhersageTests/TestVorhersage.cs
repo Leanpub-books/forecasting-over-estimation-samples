@@ -22,20 +22,47 @@ namespace VorhersageTests
 
         
         [Test]
-        public void Test_SimulationGenerieren()
+        public void Test_SimulationGenerierenFürCycleTimes()
         {
             //Arrange
             int[] cycleTimes = { 1, 2, 3, 4, 5 };
 
             //Act
             var sut = new Simulator(4, _testRandomProvider);
-            var gaussSimulation = sut.Run(cycleTimes, 3);
+            var gaussSimulation = sut.RunWithCycleTimes(cycleTimes, 3);
 
             //Assert
             var expectedResult = new List<int> { 11, 10, 14, 11};
             Assert.That(gaussSimulation, Is.EquivalentTo(expectedResult));
         }
+        
+        
+        [Test]
+        public void Test_SimulationGenerierenFürDurchsätze()
+        {
+            // { 4, 3,
+            //   1, 2, 3,
+            //   2, 3, 4,
+            //   4, 4, 3, 1 };
+            
+            //Arrange
+            int[] throughputs = { 1, 2, 3, 4, 5 };
+            // 5,4: 9
+            // 2,3,4: 9
+            // 3,4,4: 11
+            // 5,5: 10
+            
 
+            //Act
+            var sut = new Simulator(4, _testRandomProvider);
+            var gaussSimulation = sut.RunWithThroughputs(throughputs, 8);
+
+            //Assert
+            var expectedResult = new List<int> { 2, 3, 3, 2 };
+            Assert.That(gaussSimulation, Is.EquivalentTo(expectedResult));
+        }
+
+        
         [Test]
         public void Test_Gruppieren()
         {

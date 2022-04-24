@@ -30,11 +30,7 @@ namespace forecast.backend
 
             var start = DateTime.ParseExact(kandidaten[0], DatumsFormat, CultureInfo.InvariantCulture);
             var end = DateTime.ParseExact(kandidaten[1], DatumsFormat, CultureInfo.InvariantCulture);
-
-            return new Incident { 
-                Beginn = start,
-                Ende   = end
-            };
+            return new Incident(start, end); 
         }
     }
 }
