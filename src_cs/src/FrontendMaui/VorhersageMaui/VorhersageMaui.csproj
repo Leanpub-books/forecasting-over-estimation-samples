@@ -13,6 +13,7 @@
 
 		<!-- Display name -->
 		<ApplicationTitle>VorhersageMaui</ApplicationTitle>
+		<ApplicationIdGuid>5863FCA9-B68F-41B4-8D01-A2C7A62CBC06</ApplicationIdGuid>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.companyname.vorhersagemaui</ApplicationId>
@@ -29,7 +30,7 @@
 		<SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
-
+	
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\appicon.svg" ForegroundFile="Resources\appiconfg.svg" Color="#512BD4" />
@@ -45,12 +46,6 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
-
-	<ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
-		<!-- Required - WinUI does not yet have buildTransitive for everything -->
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.0.0" />
-		<PackageReference Include="Microsoft.Graphics.Win2D" Version="1.0.0.30" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="$(TargetFramework.Contains('-windows'))">
@@ -69,26 +64,22 @@
 	  </None>
 	</ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.0.1" />
-	  <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.0.3" />
-	</ItemGroup>
 
 	<ItemGroup>
 	  <Reference Include="CsvProvider">
-	    <HintPath>..\..\..\bin\Debug\net6.0\CsvProvider.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\CsvProvider.dll</HintPath>
+	  </Reference>
+	  <Reference Include="forecast_contracts">
+	    <HintPath>..\..\..\contracts\net6.0\forecast_contracts.dll</HintPath>
 	  </Reference>
 	  <Reference Include="RandomProvider">
-	    <HintPath>..\..\..\bin\Debug\net6.0\RandomProvider.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\RandomProvider.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Vorhersage">
-	    <HintPath>..\..\..\bin\Debug\net6.0\Vorhersage.dll</HintPath>
-	  </Reference>
-	  <Reference Include="VorhersageContracts">
-	    <HintPath>..\..\..\contracts\Debug\net6.0\VorhersageContracts.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\Vorhersage.dll</HintPath>
 	  </Reference>
 	  <Reference Include="VorhersageProzessor">
-	    <HintPath>..\..\..\bin\Debug\net6.0\VorhersageProzessor.dll</HintPath>
+	    <HintPath>..\..\..\bin\net6.0\net6.0\VorhersageProzessor.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 

@@ -1,11 +1,7 @@
 ﻿using System.Globalization;
 using Microsoft.AspNetCore.Components;
-using CsvProvider;
-using RandomProvider;
-using Vorhersage;
-using VorhersageContracts;
-using VorhersageProzessor;
-using VorhersageMaui.Shared;
+using forecast_contracts;
+using forecast.backend;
 
 namespace VorhersageMaui.Pages;
 
@@ -26,14 +22,13 @@ public partial class Index
 
     private async Task ChartAnzeigen()
     {
-        var vorhersageparameter = new VorhersageParameter(_viewModel.HistoryFile, _viewModel.Incidents, _viewModel.Simulations);
-        var vorhersage = await Prozessor.VorhersageErstellenAsync(vorhersageparameter);
+        var vorhersage = await Prozessor.VorhersageErstellenAsync(_viewModel.HistoryFile, _viewModel.Incidents, _viewModel.Simulations);
 
         _viewModel.ChartData = PrepareChartData(vorhersage);
         _viewModel.ChartVisible = true;
     }
 
-    private ChartDisplayData PrepareChartData(VorhersageWerte vorhersage)
+    private ChartDisplayData PrepareChartData(Vorhersage vorhersage)
     {
         var labels = vorhersage.Werte.Select(x => x.Dauer.ToString()).ToArray();
         var barData = vorhersage.Werte
